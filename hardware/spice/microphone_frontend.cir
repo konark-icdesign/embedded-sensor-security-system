@@ -3,21 +3,13 @@
 *   Same Sky/CUI CMA-4544PF-W electret capsule (AC Thevenin model here)
 *   Microchip MCP6022 dual RRIO op amp, 5 V supply
 *
-* The MCP6022 stage is represented by a datasheet-based closed-loop behavioral
-* model (gain, output limit, approximate closed-loop bandwidth). This is not
-* Microchip's transistor-level/macromodel. The surrounding RC network is solved
-* directly by ngspice.
+* The MCP6022 gain stage is represented by a datasheet-based closed-loop
+* behavioral model. The surrounding resistor/capacitor network is solved
+* directly by ngspice. This is not Microchip's full vendor macro-model.
 
 V5 v5 0 5
-V33 v33 0 3.3
 
-* Candidate virtual-ground divider initially considered: 47k/47k + 10uF.
-* It is left here only to quantify its slow startup.
-Rslow1 v5 vmid_slow 47k
-Rslow2 vmid_slow 0 47k
-Cslow vmid_slow 0 10u
-
-* Selected virtual-ground divider: 10k/10k + 10uF, buffered by op-amp A.
+* Selected 2.5 V virtual-ground divider, buffered by op-amp A.
 Rmid1 v5 vmid_raw 10k
 Rmid2 vmid_raw 0 10k
 Cmid vmid_raw 0 10u
@@ -26,45 +18,40 @@ Evmid vmid 0 vmid_raw 0 1
 * CMA-4544PF-W AC model.
 * Sensitivity -44 dBV/Pa => 6.3096 mVrms/Pa.
 * 110 dB SPL = 6.3246 Pa => 39.905 mVrms, 56.435 mVpk.
-* Tone starts after the selected virtual ground has settled.
-Vmic mic_src 0 DC 0 AC 1 SIN(0 0.0564345 1k 300m)
+Vmic mic_src 0 DC 0 AC 1 SIN(0 0.0564345 1k)
 Rmic mic_src mic_pin 2.2k
 
 * Input rumble/high-pass network.
 Ccouple mic_pin prein 100n
 Rbias prein vmid 22k
 
-* MCP6022-B preamp, non-inverting equivalent gain:
-* 1 + 49.9k/2.49k = 21.04016 V/V.
-* MCP6022 GBW is 10 MHz, so gain-21 closed-loop BW is about 475 kHz.
-* limit() approximates output headroom; RC below approximates finite bandwidth.
-Bamp amp_raw 0 V=V(vmid)+limit(21.04016*(V(prein)-V(vmid)),-2.30,2.30)
+* MCP6022-B preamp equivalent.
+* Non-inverting gain = 1 + 49.9k/2.49k = 21.04016 V/V.
+* MCP6022 GBW = 10 MHz; at gain 21 the closed-loop BW is about 475 kHz.
+* 1k/335p reproduces that first-order closed-loop bandwidth.
+Bamp amp_raw 0 V=V(vmid)+21.04016*(V(prein)-V(vmid))
 Rbw amp_raw amp 1k
 Cbw amp vmid 335p
 
-* Passive voice-band low-pass after the preamp.
+* Passive low-pass chosen for room-security voice/impact bandwidth.
 Rlp amp audio 3.3k
 Clp audio vmid 5.6n
 Rload audio vmid 100k
 
-* Optional AC-coupled line output for an external audio ADC/interface.
+* Optional AC-coupled output to an external audio ADC/interface.
 Cline audio line 4.7u
 Rline line 0 100k
 
-* Frequency-response characterization.
 .ac dec 100 10 100k
-.meas ac gain_60_db FIND vdb(audio) AT=60
-.meas ac gain_1k_db FIND vdb(audio) AT=1k
-.meas ac gain_8k_db FIND vdb(audio) AT=8k
-.meas ac gain_16k_db FIND vdb(audio) AT=16k
-.meas ac line_gain_1k_db FIND vdb(line) AT=1k
+.meas ac gain_60 FIND mag(v(audio)) AT=60
+.meas ac gain_1k FIND mag(v(audio)) AT=1k
+.meas ac gain_8k FIND mag(v(audio)) AT=8k
+.meas ac gain_16k FIND mag(v(audio)) AT=16k
+.meas ac line_gain_1k FIND mag(v(line)) AT=1k
 
-* Startup and 110 dB SPL headroom.
-.tran 10u 1.2
-.meas tran vmid_fast_99 WHEN v(vmid_raw)=2.475 RISE=1
-.meas tran vmid_slow_99 WHEN v(vmid_slow)=2.475 RISE=1
-.meas tran audio_max MAX v(audio) FROM=305m TO=315m
-.meas tran audio_min MIN v(audio) FROM=305m TO=315m
-.meas tran vmid_steady FIND v(vmid) AT=295m
+.tran 5u 20m
+.meas tran audio_max MAX v(audio) FROM=5m TO=15m
+.meas tran audio_min MIN v(audio) FROM=5m TO=15m
+.meas tran vmid_steady FIND v(vmid) AT=5m
 
 .end
