@@ -25,6 +25,7 @@ run_one() {
 run_one sensor_interface
 run_one echo_interface
 run_one alarm_driver
+run_one microphone_frontend
 
 python3 hardware/spice/check_results.py
 
