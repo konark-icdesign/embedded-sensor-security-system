@@ -34,11 +34,16 @@ load_current = abs(measurement("alarm_driver.log", "load_current_on"))
 drain_on = measurement("alarm_driver.log", "drain_on")
 drain_peak = measurement("alarm_driver.log", "drain_peak")
 
-mic_gain_60 = measurement("microphone_frontend.log", "gain_60")
-mic_gain_1k = measurement("microphone_frontend.log", "gain_1k")
-mic_gain_8k = measurement("microphone_frontend.log", "gain_8k")
-mic_gain_16k = measurement("microphone_frontend.log", "gain_16k")
-mic_line_gain_1k = measurement("microphone_frontend.log", "line_gain_1k")
+mic_out60_max = measurement("microphone_frontend.log", "out60_max")
+mic_out60_min = measurement("microphone_frontend.log", "out60_min")
+mic_out1k_max = measurement("microphone_frontend.log", "out1k_max")
+mic_out1k_min = measurement("microphone_frontend.log", "out1k_min")
+mic_out8k_max = measurement("microphone_frontend.log", "out8k_max")
+mic_out8k_min = measurement("microphone_frontend.log", "out8k_min")
+mic_out16k_max = measurement("microphone_frontend.log", "out16k_max")
+mic_out16k_min = measurement("microphone_frontend.log", "out16k_min")
+mic_line1k_max = measurement("microphone_frontend.log", "line1k_max")
+mic_line1k_min = measurement("microphone_frontend.log", "line1k_min")
 mic_audio_max = measurement("microphone_frontend.log", "audio_max")
 mic_audio_min = measurement("microphone_frontend.log", "audio_min")
 mic_vmid_steady = measurement("microphone_frontend.log", "vmid_steady")
@@ -48,6 +53,13 @@ mic_vmid_fast_99 = measurement("microphone_vmid_startup.log", "vmid_fast_99")
 mic_vmid_slow_99 = measurement("microphone_vmid_startup.log", "vmid_slow_99")
 mic_vmid_fast_250m = measurement("microphone_vmid_startup.log", "vmid_fast_250m")
 mic_vmid_slow_250m = measurement("microphone_vmid_startup.log", "vmid_slow_250m")
+
+# Small-signal channels are driven with 10 mV peak, so gain is Vpp / 20 mV.
+mic_gain_60 = (mic_out60_max - mic_out60_min) / 0.020
+mic_gain_1k = (mic_out1k_max - mic_out1k_min) / 0.020
+mic_gain_8k = (mic_out8k_max - mic_out8k_min) / 0.020
+mic_gain_16k = (mic_out16k_max - mic_out16k_min) / 0.020
+mic_line_gain_1k = (mic_line1k_max - mic_line1k_min) / 0.020
 
 mic_gain_60_db = 20.0 * math.log10(mic_gain_60)
 mic_gain_1k_db = 20.0 * math.log10(mic_gain_1k)
