@@ -15,43 +15,64 @@ Rmid2 vmid_raw 0 10k
 Cmid vmid_raw 0 10u
 Evmid vmid 0 vmid_raw 0 1
 
-* CMA-4544PF-W AC model.
-* Sensitivity -44 dBV/Pa => 6.3096 mVrms/Pa.
-* 110 dB SPL = 6.3246 Pa => 39.905 mVrms, 56.435 mVpk.
-Vmic mic_src 0 DC 0 AC 1 SIN(0 0.0564345 1k)
-Rmic mic_src mic_pin 2.2k
-
-* Input rumble/high-pass network.
+* Reusable single-channel signal path.
+* Source is the electret capsule's small-signal Thevenin voltage.
+.subckt MICPATH src audio line vmid
+Rmic src mic_pin 2.2k
 Ccouple mic_pin prein 100n
 Rbias prein vmid 22k
 
-* MCP6022-B preamp equivalent.
-* Non-inverting gain = 1 + 49.9k/2.49k = 21.04016 V/V.
-* MCP6022 GBW = 10 MHz; at gain 21 the closed-loop BW is about 475 kHz.
-* 1k/335p reproduces that first-order closed-loop bandwidth.
+* MCP6022-B equivalent:
+* non-inverting gain = 1 + 49.9k/2.49k = 21.04016 V/V.
+* MCP6022 GBW = 10 MHz; gain-21 closed-loop BW is about 475 kHz.
 Bamp amp_raw 0 V=V(vmid)+21.04016*(V(prein)-V(vmid))
 Rbw amp_raw amp 1k
 Cbw amp vmid 335p
 
-* Passive low-pass chosen for room-security voice/impact bandwidth.
+* Passive low-pass for room-security voice/impact bandwidth.
 Rlp amp audio 3.3k
 Clp audio vmid 5.6n
 Rload audio vmid 100k
 
-* Optional AC-coupled output to an external audio ADC/interface.
+* AC-coupled line output for an external audio ADC/interface.
 Cline audio line 4.7u
 Rline line 0 100k
+.ends MICPATH
 
-.ac dec 100 10 100k
-.meas ac gain_60 FIND mag(v(audio)) AT=60
-.meas ac gain_1k FIND mag(v(audio)) AT=1k
-.meas ac gain_8k FIND mag(v(audio)) AT=8k
-.meas ac gain_16k FIND mag(v(audio)) AT=16k
-.meas ac line_gain_1k FIND mag(v(line)) AT=1k
+* Small-signal sweeps are executed as parallel transient channels.
+* Each uses 10 mV peak, so voltage gain = output_pp / 20 mV.
+V60 src60 0 SIN(0 0.010 60)
+V1k src1k 0 SIN(0 0.010 1k)
+V8k src8k 0 SIN(0 0.010 8k)
+V16k src16k 0 SIN(0 0.010 16k)
 
-.tran 5u 20m
-.meas tran audio_max MAX v(audio) FROM=5m TO=15m
-.meas tran audio_min MIN v(audio) FROM=5m TO=15m
-.meas tran vmid_steady FIND v(vmid) AT=5m
+X60 src60 out60 line60 vmid MICPATH
+X1k src1k out1k line1k vmid MICPATH
+X8k src8k out8k line8k vmid MICPATH
+X16k src16k out16k line16k vmid MICPATH
+
+* CMA-4544PF-W 110 dB SPL headroom channel.
+* -44 dBV/Pa => 6.3096 mVrms/Pa.
+* 110 dB SPL = 6.3246 Pa => 39.905 mVrms = 56.435 mVpk.
+V110 src110 0 SIN(0 0.0564345 1k)
+X110 src110 out110 line110 vmid MICPATH
+
+.tran 5u 200m
+
+.meas tran out60_max MAX v(out60) FROM=100m TO=200m
+.meas tran out60_min MIN v(out60) FROM=100m TO=200m
+.meas tran out1k_max MAX v(out1k) FROM=100m TO=200m
+.meas tran out1k_min MIN v(out1k) FROM=100m TO=200m
+.meas tran out8k_max MAX v(out8k) FROM=100m TO=200m
+.meas tran out8k_min MIN v(out8k) FROM=100m TO=200m
+.meas tran out16k_max MAX v(out16k) FROM=100m TO=200m
+.meas tran out16k_min MIN v(out16k) FROM=100m TO=200m
+
+.meas tran line1k_max MAX v(line1k) FROM=100m TO=200m
+.meas tran line1k_min MIN v(line1k) FROM=100m TO=200m
+
+.meas tran audio_max MAX v(out110) FROM=100m TO=200m
+.meas tran audio_min MIN v(out110) FROM=100m TO=200m
+.meas tran vmid_steady FIND v(vmid) AT=100m
 
 .end
