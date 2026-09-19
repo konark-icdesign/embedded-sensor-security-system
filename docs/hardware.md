@@ -22,6 +22,27 @@ The official UNO R4 WiFi uses a 5 V RA4M1 host MCU, with a separate 3.3 V ESP32-
 
 Pinout and supply requirements vary across LD2410, LD2410B, LD2410C and clones. The chosen firmware reads only OUT, not UART. It therefore cannot verify radar frame freshness, configure distance gates, or reliably distinguish a wire stuck low from no presence. Use the exact module manual before wiring: https://www.hlktech.net/ .
 
+## Rev-B microphone front end
+
+The first buildable microphone circuit is now frozen for prototype work and is documented in [Rev-B microphone analog front end](microphone_frontend_revb.md).
+
+Selected prototype parts:
+
+- Same Sky/CUI CMA-4544PF-W electret microphone;
+- Microchip MCP6022-I/P dual op amp in PDIP-8;
+- 2.2 kOhm microphone bias from 3.3 V;
+- 10k/10k + 10 uF 2.5 V midpoint, buffered by one MCP6022 channel;
+- 100 nF input coupling and 22 kOhm bias to midpoint;
+- 49.9 kOhm / 2.49 kOhm non-inverting gain network;
+- 3.3 kOhm / 5.6 nF output low-pass;
+- optional 4.7 uF AC-coupled line output.
+
+The selected midpoint network reached 99% in 231.3 ms in ngspice. A 47k/47k candidate took 1083.2 ms and was rejected.
+
+The simulated end-to-end gain is 24.81 dB at 1 kHz. A 110 dB SPL equivalent input remained between 1.518 V and 3.482 V on the 5 V biased output in the current model.
+
+This does **not** mean the physical microphone chain has been validated. The exact ADC/audio-interface stage is still open and the breadboard response/noise/clipping must be measured.
+
 ## Power arrangement
 
 For first bench work, USB power is acceptable if we explicitly accept that fallback ends when USB power disappears. For the actual PC-failure demonstration, the Arduino must remain powered independently of the HP. A practical Rev-A arrangement is a supported external low-voltage supply into VIN/barrel while USB is used for data, following the board power guidance. The high-current alarm load must return directly to the supply/star ground rather than through the sensor/microphone ground path. Do not connect arbitrary external 5 V and USB supplies together.
