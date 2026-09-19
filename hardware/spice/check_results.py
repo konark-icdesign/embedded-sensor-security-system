@@ -34,17 +34,26 @@ load_current = abs(measurement("alarm_driver.log", "load_current_on"))
 drain_on = measurement("alarm_driver.log", "drain_on")
 drain_peak = measurement("alarm_driver.log", "drain_peak")
 
-mic_gain_60_db = measurement("microphone_frontend.log", "gain_60_db")
-mic_gain_1k_db = measurement("microphone_frontend.log", "gain_1k_db")
-mic_gain_8k_db = measurement("microphone_frontend.log", "gain_8k_db")
-mic_gain_16k_db = measurement("microphone_frontend.log", "gain_16k_db")
-mic_line_gain_1k_db = measurement("microphone_frontend.log", "line_gain_1k_db")
-mic_vmid_fast_99 = measurement("microphone_frontend.log", "vmid_fast_99")
-mic_vmid_slow_99 = measurement("microphone_frontend.log", "vmid_slow_99")
+mic_gain_60 = measurement("microphone_frontend.log", "gain_60")
+mic_gain_1k = measurement("microphone_frontend.log", "gain_1k")
+mic_gain_8k = measurement("microphone_frontend.log", "gain_8k")
+mic_gain_16k = measurement("microphone_frontend.log", "gain_16k")
+mic_line_gain_1k = measurement("microphone_frontend.log", "line_gain_1k")
 mic_audio_max = measurement("microphone_frontend.log", "audio_max")
 mic_audio_min = measurement("microphone_frontend.log", "audio_min")
 mic_vmid_steady = measurement("microphone_frontend.log", "vmid_steady")
 mic_audio_pp = mic_audio_max - mic_audio_min
+
+mic_vmid_fast_99 = measurement("microphone_vmid_startup.log", "vmid_fast_99")
+mic_vmid_slow_99 = measurement("microphone_vmid_startup.log", "vmid_slow_99")
+mic_vmid_fast_250m = measurement("microphone_vmid_startup.log", "vmid_fast_250m")
+mic_vmid_slow_250m = measurement("microphone_vmid_startup.log", "vmid_slow_250m")
+
+mic_gain_60_db = 20.0 * math.log10(mic_gain_60)
+mic_gain_1k_db = 20.0 * math.log10(mic_gain_1k)
+mic_gain_8k_db = 20.0 * math.log10(mic_gain_8k)
+mic_gain_16k_db = 20.0 * math.log10(mic_gain_16k)
+mic_line_gain_1k_db = 20.0 * math.log10(mic_line_gain_1k)
 
 # All pulse sources rise at t=1 ms in these netlists.
 sensor_delay = sensor_cross - 1e-3
@@ -70,6 +79,8 @@ checks = {
     "microphone_line_out_tracks_audio_at_1k": abs(mic_line_gain_1k_db - mic_gain_1k_db) <= 0.2,
     "microphone_selected_vmid_99_under_0p30s": 0 < mic_vmid_fast_99 < 0.30,
     "microphone_old_47k_vmid_is_slow": mic_vmid_slow_99 > 0.90,
+    "microphone_selected_vmid_near_settled_by_250ms": mic_vmid_fast_250m > 2.45,
+    "microphone_old_vmid_not_settled_by_250ms": mic_vmid_slow_250m < 1.8,
     "microphone_vmid_settled_near_2p5V": 2.45 <= mic_vmid_steady <= 2.50,
     "microphone_110dB_no_low_rail_clip": mic_audio_min > 1.0,
     "microphone_110dB_no_high_rail_clip": mic_audio_max < 4.0,
@@ -94,6 +105,8 @@ print(f"microphone gain @ 16 kHz:       {mic_gain_16k_db:.2f} dB")
 print(f"microphone line gain @ 1 kHz:   {mic_line_gain_1k_db:.2f} dB")
 print(f"selected Vmid 99% settle:       {mic_vmid_fast_99 * 1e3:.1f} ms")
 print(f"47k candidate Vmid 99% settle:  {mic_vmid_slow_99 * 1e3:.1f} ms")
+print(f"selected Vmid @ 250 ms:         {mic_vmid_fast_250m:.4f} V")
+print(f"47k candidate Vmid @ 250 ms:    {mic_vmid_slow_250m:.4f} V")
 print(f"microphone Vmid steady:         {mic_vmid_steady:.4f} V")
 print(f"110 dB SPL audio min/max:       {mic_audio_min:.3f} / {mic_audio_max:.3f} V")
 print(f"110 dB SPL audio p-p:           {mic_audio_pp:.3f} V")
