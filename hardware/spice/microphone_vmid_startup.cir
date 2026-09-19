@@ -1,0 +1,22 @@
+* Virtual-ground startup comparison for the Rev-B microphone front end.
+* 5 V rail is stepped on at 1 ms. Both candidates use 10 uF decoupling.
+
+V5 v5 0 PULSE(0 5 1m 1u 1u 2 4)
+
+* Initial high-impedance divider candidate.
+Rslow1 v5 vmid_slow 47k
+Rslow2 vmid_slow 0 47k
+Cslow vmid_slow 0 10u
+
+* Selected lower-impedance divider.
+Rfast1 v5 vmid_fast 10k
+Rfast2 vmid_fast 0 10k
+Cfast vmid_fast 0 10u
+
+.tran 100u 1.3
+.meas tran vmid_fast_99 WHEN v(vmid_fast)=2.475 RISE=1
+.meas tran vmid_slow_99 WHEN v(vmid_slow)=2.475 RISE=1
+.meas tran vmid_fast_250m FIND v(vmid_fast) AT=250m
+.meas tran vmid_slow_250m FIND v(vmid_slow) AT=250m
+
+.end
