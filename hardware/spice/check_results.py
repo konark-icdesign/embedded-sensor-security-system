@@ -34,6 +34,18 @@ load_current = abs(measurement("alarm_driver.log", "load_current_on"))
 drain_on = measurement("alarm_driver.log", "drain_on")
 drain_peak = measurement("alarm_driver.log", "drain_peak")
 
+mic_gain_60_db = measurement("microphone_frontend.log", "gain_60_db")
+mic_gain_1k_db = measurement("microphone_frontend.log", "gain_1k_db")
+mic_gain_8k_db = measurement("microphone_frontend.log", "gain_8k_db")
+mic_gain_16k_db = measurement("microphone_frontend.log", "gain_16k_db")
+mic_line_gain_1k_db = measurement("microphone_frontend.log", "line_gain_1k_db")
+mic_vmid_fast_99 = measurement("microphone_frontend.log", "vmid_fast_99")
+mic_vmid_slow_99 = measurement("microphone_frontend.log", "vmid_slow_99")
+mic_audio_max = measurement("microphone_frontend.log", "audio_max")
+mic_audio_min = measurement("microphone_frontend.log", "audio_min")
+mic_vmid_steady = measurement("microphone_frontend.log", "vmid_steady")
+mic_audio_pp = mic_audio_max - mic_audio_min
+
 # All pulse sources rise at t=1 ms in these netlists.
 sensor_delay = sensor_cross - 1e-3
 sensor_logic_delay = sensor_out - 1e-3
@@ -51,6 +63,17 @@ checks = {
     "alarm_current_about_0p5A": 0.45 <= load_current <= 0.55,
     "alarm_MOSFET_on_drop_under_100mV": 0 <= drain_on <= 0.100,
     "flyback_peak_under_15V_in_model": 0 <= drain_peak <= 15.0,
+    "microphone_1k_gain_24p5_to_26p5dB": 24.5 <= mic_gain_1k_db <= 26.5,
+    "microphone_60Hz_at_least_2p5dB_below_1k": mic_gain_60_db <= mic_gain_1k_db - 2.5,
+    "microphone_8k_rolloff_2_to_4dB": 2.0 <= mic_gain_1k_db - mic_gain_8k_db <= 4.0,
+    "microphone_16k_at_least_6dB_below_1k": mic_gain_16k_db <= mic_gain_1k_db - 6.0,
+    "microphone_line_out_tracks_audio_at_1k": abs(mic_line_gain_1k_db - mic_gain_1k_db) <= 0.2,
+    "microphone_selected_vmid_99_under_0p30s": 0 < mic_vmid_fast_99 < 0.30,
+    "microphone_old_47k_vmid_is_slow": mic_vmid_slow_99 > 0.90,
+    "microphone_vmid_settled_near_2p5V": 2.45 <= mic_vmid_steady <= 2.50,
+    "microphone_110dB_no_low_rail_clip": mic_audio_min > 1.0,
+    "microphone_110dB_no_high_rail_clip": mic_audio_max < 4.0,
+    "microphone_110dB_output_pp_reasonable": 1.8 <= mic_audio_pp <= 2.4,
 }
 
 print("SPICE acceptance measurements")
@@ -64,6 +87,16 @@ print(f"alarm gate 4.5V delay:          {gate_delay * 1e6:.3f} us")
 print(f"alarm load current:             {load_current:.4f} A")
 print(f"alarm MOSFET drain ON:          {drain_on * 1e3:.2f} mV")
 print(f"flyback drain peak:             {drain_peak:.3f} V")
+print(f"microphone gain @ 60 Hz:        {mic_gain_60_db:.2f} dB")
+print(f"microphone gain @ 1 kHz:        {mic_gain_1k_db:.2f} dB")
+print(f"microphone gain @ 8 kHz:        {mic_gain_8k_db:.2f} dB")
+print(f"microphone gain @ 16 kHz:       {mic_gain_16k_db:.2f} dB")
+print(f"microphone line gain @ 1 kHz:   {mic_line_gain_1k_db:.2f} dB")
+print(f"selected Vmid 99% settle:       {mic_vmid_fast_99 * 1e3:.1f} ms")
+print(f"47k candidate Vmid 99% settle:  {mic_vmid_slow_99 * 1e3:.1f} ms")
+print(f"microphone Vmid steady:         {mic_vmid_steady:.4f} V")
+print(f"110 dB SPL audio min/max:       {mic_audio_min:.3f} / {mic_audio_max:.3f} V")
+print(f"110 dB SPL audio p-p:           {mic_audio_pp:.3f} V")
 
 failed = [name for name, ok in checks.items() if not ok]
 for name, ok in checks.items():
