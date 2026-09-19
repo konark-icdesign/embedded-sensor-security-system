@@ -38,6 +38,8 @@ A later [hardware-resilience audit](docs/hardware_resilience_audit.md) executed 
 
 The first [datasheet-based electrical hardware simulation](docs/electrical_hardware_simulation.md) now covers the proposed PIR/radar logic conditioning, HC-SR04 trigger/echo interface, AO3400A alarm switch and ultrasonic temperature error. It rejects direct 3.3 V sensor outputs into the 5 V RA4M1 as not guaranteed and replaces them with a SN74AHCT14 Schmitt interface. This is a deterministic lumped-element electrical model; final vendor-SPICE and bench measurements are still pending.
 
+A second [Rev-B microphone front-end simulation](docs/microphone_frontend_revb.md) now defines a breadboard-oriented analog audio path around a CMA-4544PF-W electret capsule and MCP6022 dual op amp. ngspice measured 24.81 dB gain at 1 kHz, useful roll-off at 60 Hz/8 kHz/16 kHz, 1.965 Vpp output for a 110 dB SPL equivalent input, and exposed a slow 47k/47k virtual-ground candidate that was replaced by 10k/10k. These are circuit-model results, not physical microphone measurements.
+
 ## Running it
 
 Use Python 3.12. From the project folder on Windows:
@@ -86,6 +88,7 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 - [Hardware and wiring](docs/hardware.md)
 - [Hardware resilience audit](docs/hardware_resilience_audit.md)
 - [Electrical hardware simulation](docs/electrical_hardware_simulation.md)
+- [Rev-B microphone front end](docs/microphone_frontend_revb.md)
 - [HP t640 setup](docs/hp_setup.md)
 - [Learning and validation tasks](docs/learning_and_validation.md)
 
