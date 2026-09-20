@@ -9,7 +9,7 @@ The owner confirmed an Arduino UNO Ek R4 WiFi, made in India. Arduino describes 
 The order of work is:
 
 1. Software simulation: exercise audio, image processing, fusion and incident handling. Existing results and failures are in [validation](validation.md).
-2. Circuit and firmware verification: settle interfaces, draw the circuit, check electrical behaviour and exercise firmware with controlled inputs. The first datasheet-based lumped electrical simulation now covers D2/D3 level conditioning, HC-SR04 I/O and the D9 MOSFET alarm stage; see [electrical hardware simulation](electrical_hardware_simulation.md). A transistor-level vendor-SPICE simulation of the complete R4/sensor system and physical bench validation have still not run.
+2. Circuit and firmware verification: settle interfaces, draw the circuit, check electrical behaviour and exercise firmware with controlled inputs. The first datasheet-based lumped electrical simulation now covers D2/D3 level conditioning, HC-SR04 I/O and the D9 MOSFET alarm stage; see [electrical hardware simulation](electrical_hardware_simulation.md). A transistor-level vendor-SPICE simulation of the complete R4/sensor system and physical bench validation have still not run. Rev-B adds the microphone analog front end and Rev-C adds system-level power/ground-return transient simulation.
 3. Physical assembly: test individual modules, then integrate the board, HP, router, microphone and camera, and finally evaluate the room.
 
 Stage 1 can be demonstrated as a software project. Its results do not complete stages 2 or 3.
