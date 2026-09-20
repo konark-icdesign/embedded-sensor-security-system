@@ -26,13 +26,18 @@ C_ANALOG_BULK ana5 g_shared 220u
 C_ANALOG_HF ana5 g_shared 100n
 I_ANALOG ana5 g_shared 0.004
 
+* Explicit differential-probe nodes for ngspice .meas compatibility.
+E_RAIL5_REL rail5_rel 0 rail5 g_power 1
+E_ANALOG5_REL analog5_rel 0 ana5 g_shared 1
+E_SHARED_GND_REL shared_gnd_rel 0 g_shared g_power 1
+
 .tran 2u 30m
 
 .meas tran vin_min MIN v(vin) FROM=9m TO=20m
-.meas tran rail5_min MIN v(rail5,g_power) FROM=9m TO=20m
-.meas tran analog5_min MIN v(ana5,g_shared) FROM=9m TO=20m
-.meas tran shared_ground_peak MAX v(g_shared,g_power) FROM=9m TO=20m
-.meas tran shared_ground_quiet FIND v(g_shared,g_power) AT=11m
-.meas tran shared_ground_alarm FIND v(g_shared,g_power) AT=14m
+.meas tran rail5_min MIN v(rail5_rel) FROM=9m TO=20m
+.meas tran analog5_min MIN v(analog5_rel) FROM=9m TO=20m
+.meas tran shared_ground_peak MAX v(shared_gnd_rel) FROM=9m TO=20m
+.meas tran shared_ground_quiet FIND v(shared_gnd_rel) AT=11m
+.meas tran shared_ground_alarm FIND v(shared_gnd_rel) AT=14m
 
 .end
