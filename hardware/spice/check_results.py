@@ -67,6 +67,24 @@ mic_gain_8k_db = 20.0 * math.log10(mic_gain_8k)
 mic_gain_16k_db = 20.0 * math.log10(mic_gain_16k)
 mic_line_gain_1k_db = 20.0 * math.log10(mic_line_gain_1k)
 
+star_vin_min = measurement("power_distribution_star.log", "vin_min")
+star_rail5_min = measurement("power_distribution_star.log", "rail5_min")
+star_rail5_max = measurement("power_distribution_star.log", "rail5_max")
+star_analog5_min = measurement("power_distribution_star.log", "analog5_min")
+star_analog5_max = measurement("power_distribution_star.log", "analog5_max")
+star_analog_ground_min = measurement("power_distribution_star.log", "analog_ground_min")
+star_analog_ground_max = measurement("power_distribution_star.log", "analog_ground_max")
+star_analog_ground_abs = max(abs(star_analog_ground_min), abs(star_analog_ground_max))
+star_alarm_ground_peak = measurement("power_distribution_star.log", "alarm_ground_peak")
+star_vin_at_peak = measurement("power_distribution_star.log", "vin_at_peak")
+
+shared_vin_min = measurement("power_distribution_shared_return.log", "vin_min")
+shared_rail5_min = measurement("power_distribution_shared_return.log", "rail5_min")
+shared_analog5_min = measurement("power_distribution_shared_return.log", "analog5_min")
+shared_ground_peak = measurement("power_distribution_shared_return.log", "shared_ground_peak")
+shared_ground_quiet = measurement("power_distribution_shared_return.log", "shared_ground_quiet")
+shared_ground_alarm = measurement("power_distribution_shared_return.log", "shared_ground_alarm")
+
 # All pulse sources rise at t=1 ms in these netlists.
 sensor_delay = sensor_cross - 1e-3
 sensor_logic_delay = sensor_out - 1e-3
@@ -97,6 +115,16 @@ checks = {
     "microphone_110dB_no_low_rail_clip": mic_audio_min > 1.0,
     "microphone_110dB_no_high_rail_clip": mic_audio_max < 4.0,
     "microphone_110dB_output_pp_reasonable": 1.8 <= mic_audio_pp <= 2.4,
+    "power_star_12V_bus_stays_above_11p5V": star_vin_min > 11.5,
+    "power_star_5V_sensor_rail_stays_above_4p90V": star_rail5_min > 4.90,
+    "power_star_5V_sensor_rail_stays_below_5p05V": star_rail5_max < 5.05,
+    "power_star_analog_rail_stays_above_4p85V": star_analog5_min > 4.85,
+    "power_star_analog_ground_shift_under_5mV": star_analog_ground_abs < 0.005,
+    "power_star_alarm_return_shift_under_25mV": abs(star_alarm_ground_peak) < 0.025,
+    "power_shared_return_creates_over_40mV_ground_shift": abs(shared_ground_peak) > 0.040,
+    "power_shared_alarm_adds_over_35mV_shift": abs(shared_ground_alarm - shared_ground_quiet) > 0.035,
+    "power_shared_5V_rail_itself_still_regulated": shared_rail5_min > 4.90,
+    "power_shared_analog_supply_not_collapsed": shared_analog5_min > 4.80,
 }
 
 print("SPICE acceptance measurements")
@@ -122,6 +150,17 @@ print(f"47k candidate Vmid @ 250 ms:    {mic_vmid_slow_250m:.4f} V")
 print(f"microphone Vmid steady:         {mic_vmid_steady:.4f} V")
 print(f"110 dB SPL audio min/max:       {mic_audio_min:.3f} / {mic_audio_max:.3f} V")
 print(f"110 dB SPL audio p-p:           {mic_audio_pp:.3f} V")
+print(f"Rev-C star VIN minimum:          {star_vin_min:.3f} V")
+print(f"Rev-C star 5V rail min/max:      {star_rail5_min:.3f} / {star_rail5_max:.3f} V")
+print(f"Rev-C star analog rail min/max:  {star_analog5_min:.3f} / {star_analog5_max:.3f} V")
+print(f"Rev-C star analog ground min/max:{star_analog_ground_min * 1e3:.2f} / {star_analog_ground_max * 1e3:.2f} mV")
+print(f"Rev-C star analog ground |max|:  {star_analog_ground_abs * 1e3:.2f} mV")
+print(f"Rev-C star alarm ground peak:    {star_alarm_ground_peak * 1e3:.2f} mV")
+print(f"Rev-C shared VIN minimum:        {shared_vin_min:.3f} V")
+print(f"Rev-C shared 5V rail minimum:    {shared_rail5_min:.3f} V")
+print(f"Rev-C shared analog rail min:    {shared_analog5_min:.3f} V")
+print(f"Rev-C shared ground peak:        {shared_ground_peak * 1e3:.2f} mV")
+print(f"Rev-C shared quiet/alarm shift:  {shared_ground_quiet * 1e3:.2f} / {shared_ground_alarm * 1e3:.2f} mV")
 
 failed = [name for name, ok in checks.items() if not ok]
 for name, ok in checks.items():

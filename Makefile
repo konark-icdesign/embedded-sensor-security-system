@@ -20,6 +20,7 @@ hardware-stress:
 
 electrical-sim:
 	$(PYTHON) hardware/electrical_interface_sim.py > electrical-sim.json
+	$(PYTHON) hardware/power_distribution_model.py > power-distribution-model.txt
 
 .PHONY: incident-build c-sanitize incidents
 incident-build:

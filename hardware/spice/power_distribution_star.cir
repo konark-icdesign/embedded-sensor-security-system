@@ -1,0 +1,70 @@
+* Rev-C low-voltage power distribution: star-ground layout.
+* This uses a datasheet-based averaged regulator abstraction, not a full
+* transistor/switching macro-model of TPS54202.
+*
+* Design envelope:
+*   12 V regulated external adapter
+*   UNO VIN branch: 0.12 A -> 0.25 A input-current envelope
+*   TPS54202 5 V sensor rail: 0.15 A -> 1.00 A load step
+*   12 V alarm branch: 0 -> 0.50 A
+*   analog front end: 4 mA on separately filtered 5 V branch
+
+VADAPTER src 0 12
+R_SOURCE src vin 0.25
+
+* Input bulk near the distribution point.
+R_BULK_ESR vin cbulk 0.05
+C_BULK cbulk 0 470u
+
+* Independent star returns.
+R_GND_UNO g_uno 0 0.01
+R_GND_PWR g_power 0 0.005
+R_GND_ALARM g_alarm 0 0.03
+R_GND_ANALOG g_analog 0 0.01
+
+* UNO VIN current envelope.
+I_UNO vin g_uno PULSE(0.12 0.25 14m 10u 10u 2m 40m)
+
+* Equivalent 12 V input current of the 5 V buck at 90% efficiency:
+* ~0.07 A for 0.15 A out, ~0.47 A for 1.0 A out.
+I_BUCK_IN vin g_power PULSE(0.07 0.47 10m 20u 20u 5m 40m)
+
+* Alarm current overlaps the 5 V load step.
+I_ALARM vin g_alarm PULSE(0 0.50 12m 10u 10u 5m 40m)
+
+* TPS54202 closed-loop rail abstraction.
+* 60 mOhm effective dynamic output impedance is deliberately conservative.
+V_REG regsrc g_power 5.0
+R_REG regsrc rail5 0.060
+
+* TI 5 V reference design uses 44 uF output capacitance.
+R_COUT_ESR rail5 cout_node 0.005
+C_COUT cout_node g_power 44u
+
+* Digital/sensor 5 V load step.
+I_SENSOR rail5 g_power PULSE(0.15 1.00 10m 20u 20u 5m 40m)
+
+* Analog/audio supply isolation.
+R_ANALOG_FEED rail5 ana5 10
+C_ANALOG_BULK ana5 g_analog 220u
+C_ANALOG_HF ana5 g_analog 100n
+I_ANALOG ana5 g_analog 0.004
+
+* Explicit differential-probe nodes for ngspice .meas compatibility.
+E_RAIL5_REL rail5_rel 0 rail5 g_power 1
+E_ANALOG5_REL analog5_rel 0 ana5 g_analog 1
+E_ANALOG_GND_REL analog_gnd_rel 0 g_analog g_power 1
+
+.tran 2u 30m
+
+.meas tran vin_min MIN v(vin) FROM=9m TO=20m
+.meas tran rail5_min MIN v(rail5_rel) FROM=9m TO=20m
+.meas tran rail5_max MAX v(rail5_rel) FROM=9m TO=20m
+.meas tran analog5_min MIN v(analog5_rel) FROM=9m TO=20m
+.meas tran analog5_max MAX v(analog5_rel) FROM=9m TO=20m
+.meas tran analog_ground_min MIN v(analog_gnd_rel) FROM=9m TO=20m
+.meas tran analog_ground_max MAX v(analog_gnd_rel) FROM=9m TO=20m
+.meas tran alarm_ground_peak MAX v(g_alarm) FROM=9m TO=20m
+.meas tran vin_at_peak FIND v(vin) AT=14.5m
+
+.end

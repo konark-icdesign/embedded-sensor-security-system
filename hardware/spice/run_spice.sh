@@ -27,6 +27,8 @@ run_one echo_interface
 run_one alarm_driver
 run_one microphone_frontend
 run_one microphone_vmid_startup
+run_one power_distribution_star
+run_one power_distribution_shared_return
 
 python3 hardware/spice/check_results.py
 

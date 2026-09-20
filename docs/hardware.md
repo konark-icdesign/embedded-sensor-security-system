@@ -43,9 +43,28 @@ The simulated end-to-end gain is 24.81 dB at 1 kHz. A 110 dB SPL equivalent inpu
 
 This does **not** mean the physical microphone chain has been validated. The exact ADC/audio-interface stage is still open and the breadboard response/noise/clipping must be measured.
 
+## Rev-C power distribution
+
+The first system-level low-voltage power architecture is documented in [Rev-C power distribution and ground-return design](power_distribution_revc.md).
+
+The prototype target is now:
+
+- approved external 12 V DC adapter;
+- UNO R4 independently powered through VIN so HP USB loss does not kill local fallback;
+- separate TPS54202-based 5 V sensor rail;
+- microphone/analog rail isolated from that 5 V rail by 10 Ohm + 220 uF + 100 nF;
+- alarm/siren supplied from the 12 V bus through its own fused/MOSFET branch;
+- alarm current returned directly to the power star point, not through microphone/sensor ground wiring.
+
+The current SPICE stress envelope overlaps a 0.15 -> 1.00 A sensor-rail step, a 0 -> 0.50 A alarm load and a UNO input-current increase. In the final Rev-C star model the 12 V bus stayed above 11.695 V, the 5 V rail stayed above 4.940 V and the filtered analog rail stayed above 4.907 V.
+
+The same circuit with a deliberately bad shared 0.10 Ohm alarm/analog return produced about 50.39 mV of ground movement. That topology is rejected.
+
+These are modeled design envelopes, not measured current values. Exact alarm current, sensor currents and adapter behavior still need bench measurements.
+
 ## Power arrangement
 
-For first bench work, USB power is acceptable if we explicitly accept that fallback ends when USB power disappears. For the actual PC-failure demonstration, the Arduino must remain powered independently of the HP. A practical Rev-A arrangement is a supported external low-voltage supply into VIN/barrel while USB is used for data, following the board power guidance. The high-current alarm load must return directly to the supply/star ground rather than through the sensor/microphone ground path. Do not connect arbitrary external 5 V and USB supplies together.
+For first bench work, USB power is acceptable if we explicitly accept that fallback ends when USB power disappears. For the actual PC-failure demonstration, the Arduino must remain powered independently of the HP. Rev-C therefore uses a supported external 12 V low-voltage source into VIN/barrel while USB is used for data, following the board power guidance. The alarm branch and microphone/analog branch use separate return conductors to the power star point. Do not connect arbitrary external 5 V and USB supplies together.
 
 ## What the sketch actually does
 
