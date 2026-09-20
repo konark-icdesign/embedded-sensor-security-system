@@ -40,6 +40,8 @@ The first [datasheet-based electrical hardware simulation](docs/electrical_hardw
 
 A second [Rev-B microphone front-end simulation](docs/microphone_frontend_revb.md) now defines a breadboard-oriented analog audio path around a CMA-4544PF-W electret capsule and MCP6022 dual op amp. ngspice measured 24.81 dB gain at 1 kHz, useful roll-off at 60 Hz/8 kHz/16 kHz, 1.965 Vpp output for a 110 dB SPL equivalent input, and exposed a slow 47k/47k virtual-ground candidate that was replaced by 10k/10k. These are circuit-model results, not physical microphone measurements.
 
+A third [Rev-C power-distribution simulation](docs/power_distribution_revc.md) now links the UNO VIN supply, a provisional TPS54202 5 V sensor rail, the analog microphone rail and the alarm branch. Under the stated stress envelope, the star-ground model kept VIN at or above 11.695 V, the 5 V sensor rail at or above 4.940 V and the analog rail at or above 4.907 V. A deliberately shared alarm/microphone return created about 50.39 mV of ground movement, so that wiring topology is rejected. The regulator itself is still a datasheet-based closed-loop abstraction rather than a full vendor switching model.
+
 ## Running it
 
 Use Python 3.12. From the project folder on Windows:
@@ -89,6 +91,7 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 - [Hardware resilience audit](docs/hardware_resilience_audit.md)
 - [Electrical hardware simulation](docs/electrical_hardware_simulation.md)
 - [Rev-B microphone front end](docs/microphone_frontend_revb.md)
+- [Rev-C power distribution](docs/power_distribution_revc.md)
 - [HP t640 setup](docs/hp_setup.md)
 - [Learning and validation tasks](docs/learning_and_validation.md)
 
