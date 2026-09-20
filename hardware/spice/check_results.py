@@ -72,7 +72,9 @@ star_rail5_min = measurement("power_distribution_star.log", "rail5_min")
 star_rail5_max = measurement("power_distribution_star.log", "rail5_max")
 star_analog5_min = measurement("power_distribution_star.log", "analog5_min")
 star_analog5_max = measurement("power_distribution_star.log", "analog5_max")
-star_analog_ground_peak = measurement("power_distribution_star.log", "analog_ground_peak")
+star_analog_ground_min = measurement("power_distribution_star.log", "analog_ground_min")
+star_analog_ground_max = measurement("power_distribution_star.log", "analog_ground_max")
+star_analog_ground_abs = max(abs(star_analog_ground_min), abs(star_analog_ground_max))
 star_alarm_ground_peak = measurement("power_distribution_star.log", "alarm_ground_peak")
 star_vin_at_peak = measurement("power_distribution_star.log", "vin_at_peak")
 
@@ -117,7 +119,7 @@ checks = {
     "power_star_5V_sensor_rail_stays_above_4p90V": star_rail5_min > 4.90,
     "power_star_5V_sensor_rail_stays_below_5p05V": star_rail5_max < 5.05,
     "power_star_analog_rail_stays_above_4p85V": star_analog5_min > 4.85,
-    "power_star_analog_ground_shift_under_5mV": abs(star_analog_ground_peak) < 0.005,
+    "power_star_analog_ground_shift_under_5mV": star_analog_ground_abs < 0.005,
     "power_star_alarm_return_shift_under_25mV": abs(star_alarm_ground_peak) < 0.025,
     "power_shared_return_creates_over_40mV_ground_shift": abs(shared_ground_peak) > 0.040,
     "power_shared_alarm_adds_over_35mV_shift": abs(shared_ground_alarm - shared_ground_quiet) > 0.035,
@@ -151,7 +153,8 @@ print(f"110 dB SPL audio p-p:           {mic_audio_pp:.3f} V")
 print(f"Rev-C star VIN minimum:          {star_vin_min:.3f} V")
 print(f"Rev-C star 5V rail min/max:      {star_rail5_min:.3f} / {star_rail5_max:.3f} V")
 print(f"Rev-C star analog rail min/max:  {star_analog5_min:.3f} / {star_analog5_max:.3f} V")
-print(f"Rev-C star analog ground peak:   {star_analog_ground_peak * 1e3:.2f} mV")
+print(f"Rev-C star analog ground min/max:{star_analog_ground_min * 1e3:.2f} / {star_analog_ground_max * 1e3:.2f} mV")
+print(f"Rev-C star analog ground |max|:  {star_analog_ground_abs * 1e3:.2f} mV")
 print(f"Rev-C star alarm ground peak:    {star_alarm_ground_peak * 1e3:.2f} mV")
 print(f"Rev-C shared VIN minimum:        {shared_vin_min:.3f} V")
 print(f"Rev-C shared 5V rail minimum:    {shared_rail5_min:.3f} V")
