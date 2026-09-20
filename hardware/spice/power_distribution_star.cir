@@ -50,14 +50,19 @@ C_ANALOG_BULK ana5 g_analog 220u
 C_ANALOG_HF ana5 g_analog 100n
 I_ANALOG ana5 g_analog 0.004
 
+* Explicit differential-probe nodes for ngspice .meas compatibility.
+E_RAIL5_REL rail5_rel 0 rail5 g_power 1
+E_ANALOG5_REL analog5_rel 0 ana5 g_analog 1
+E_ANALOG_GND_REL analog_gnd_rel 0 g_analog g_power 1
+
 .tran 2u 30m
 
 .meas tran vin_min MIN v(vin) FROM=9m TO=20m
-.meas tran rail5_min MIN v(rail5,g_power) FROM=9m TO=20m
-.meas tran rail5_max MAX v(rail5,g_power) FROM=9m TO=20m
-.meas tran analog5_min MIN v(ana5,g_analog) FROM=9m TO=20m
-.meas tran analog5_max MAX v(ana5,g_analog) FROM=9m TO=20m
-.meas tran analog_ground_peak MAX v(g_analog,g_power) FROM=9m TO=20m
+.meas tran rail5_min MIN v(rail5_rel) FROM=9m TO=20m
+.meas tran rail5_max MAX v(rail5_rel) FROM=9m TO=20m
+.meas tran analog5_min MIN v(analog5_rel) FROM=9m TO=20m
+.meas tran analog5_max MAX v(analog5_rel) FROM=9m TO=20m
+.meas tran analog_ground_peak MAX v(analog_gnd_rel) FROM=9m TO=20m
 .meas tran alarm_ground_peak MAX v(g_alarm) FROM=9m TO=20m
 .meas tran vin_at_peak FIND v(vin) AT=14.5m
 
