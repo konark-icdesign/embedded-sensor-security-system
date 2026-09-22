@@ -1,5 +1,7 @@
 // Bench firmware. Confirm the board and electrical levels in docs/hardware.md.
-// 60 s sensor warm-up. USB serial avoids putting Wi-Fi between sensors and HP.
+// 60 s startup inhibit. This exceeds the frozen Panasonic EKMC1601111 PIR
+// 30 s maximum circuit-stability time and the LD2412's initial radar settling period.
+// USB serial avoids putting Wi-Fi between sensors and HP.
 #include <Arduino.h>
 #include "core.h"
 #if defined(ARDUINO_ARCH_RENESAS_UNO)
@@ -7,6 +9,7 @@
 #endif
 
 constexpr uint8_t PIR_PIN = 2, RADAR_PIN = 3, TRIG_PIN = 4, ECHO_PIN = 5;
+constexpr uint32_t SENSOR_STARTUP_INHIBIT_MS = 60000U;
 constexpr uint8_t GREEN_PIN = 6, YELLOW_PIN = 7, RED_PIN = 8, BUZZER_PIN = 9, RESET_PIN = 10;
 security::Core controller;
 security::LineBuffer commandLine;
@@ -89,7 +92,7 @@ void loop() {
     processServerMessage(now);
     if (security::elapsed(now, lastSample) >= 100U) {
         lastSample = now;
-        const bool armed = security::elapsed(now, startMs) >= 60000U;
+        const bool armed = security::elapsed(now, startMs) >= SENSOR_STARTUP_INHIBIT_MS;
         if (digitalRead(RESET_PIN) == LOW) {
             controller.reset();
         }
