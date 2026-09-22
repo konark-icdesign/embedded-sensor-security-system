@@ -44,6 +44,8 @@ A third [Rev-C power-distribution simulation](docs/power_distribution_revc.md) n
 
 A fourth [Rev-D buildable hardware pass](docs/revd_buildable_hardware.md) freezes exact prototype sensors and updates the PIR/radar input network for those datasheets. It selects EKMC1601111 rather than the earlier ultra-low-power PIR candidate because the security node does not need microamp battery operation and the EKMC has a much shorter specified startup-stability window. Rev-D also fixes an unnecessary DC divider in the generic sensor input by moving the 100 kOhm idle pulldown ahead of the 10 kOhm RC series resistor. In the exact-part ngspice run, the worst-case EKMC channel reached 4.4697 V before conditioning and 4.4 V at the modeled AHCT output while drawing 48.03 uA; the LD2412 channel reached 3.2778 V before conditioning and 4.4 V after it. All Rev-D electrical checks passed. The [Rev-D BOM](docs/bom_revd.md) separates breadboard-friendly circuits from blocks that need a daughterboard/PCB.
 
+[Rev-E board-to-host serial ingress](docs/board_serial_ingress_reve.md) now handles the exact UNO USB sensor line before it reaches the incident pipeline. The deterministic host-side simulation injects arrival jitter, sequence loss, a USB reconnect gap, a board reboot, malformed/duplicate packets and uint32 counter wrap. Nine focused unit tests and all twelve Rev-E simulation checks passed locally before the change was uploaded. During that run an initial fixed-offset clock mapper was rejected because lower USB latency could place a later packet in the future; the final mapper uses the lowest observed arrival-minus-board-time offset while requiring monotonic capture time. This is still not a physical USB or sensor measurement.
+
 ## Running it
 
 Use Python 3.12. From the project folder on Windows:
@@ -55,6 +57,7 @@ python -m pip install -r requirements.txt
 python scripts/fetch_real_audio.py
 python run_simulation.py --seeds 1
 python scripts/system_resilience_sim.py
+python scripts/board_serial_sim.py
 python -m unittest discover -s tests -p "test_*.py" -v
 make hardware-stress
 make electrical-sim
