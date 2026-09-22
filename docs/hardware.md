@@ -8,8 +8,8 @@ The official UNO R4 WiFi uses a 5 V RA4M1 host MCU, with a separate 3.3 V ESP32-
 
 | Connection | Sketch pin | Note |
 |---|---:|---|
-| PIR output | D2 | Rev-A electrical design: 0/3.3 V sensor OUT -> 10 kOhm series, 100 kOhm pulldown, 10 nF shunt -> two SN74AHCT14 gates -> D2. Do not connect a 3.3 V HIGH directly and call it guaranteed. |
-| LD2410B/C-class presence OUT | D3 | Same SN74AHCT14 double-inverter conditioner as D2. Exact purchased radar module still has to match the 0/3.3 V OUT assumption. |
+| Panasonic EKMC1601111 PIR output | D2 | Rev-D: PIR OUT node has 100 kOhm pulldown, then 10 kOhm series + 10 nF shunt, then two SN74AHCT14 gates to D2. Sensor runs from 5 V. |
+| Hi-Link HLK-LD2412 presence OUT | D3 | Rev-D: 3.3 V GPIO OUT uses the same 100 kOhm pulldown + 10 kOhm/10 nF RC + double-AHCT conditioner. Radar runs from the 5 V sensor rail. |
 | Ultrasonic trigger | D4 | HC-SR04-like TRIG through 220 Ohm series resistor; firmware pulse is 10 us. |
 | Ultrasonic echo | D5 | HC-SR04 Echo -> 1 kOhm series -> D5, with 100 kOhm pulldown and 100 pF shunt at the MCU side. UNO R4 main GPIO is a 5 V domain. |
 | Green LED | D6 | Series current-limiting resistor |
@@ -20,7 +20,20 @@ The official UNO R4 WiFi uses a 5 V RA4M1 host MCU, with a separate 3.3 V ESP32-
 | PC connection | USB-C | Serial data at 115200 baud |
 | Shared reference | GND | All low-voltage sensor grounds need a common reference |
 
-Pinout and supply requirements vary across LD2410, LD2410B, LD2410C and clones. The chosen firmware reads only OUT, not UART. It therefore cannot verify radar frame freshness, configure distance gates, or reliably distinguish a wire stuck low from no presence. Use the exact module manual before wiring: https://www.hlktech.net/ .
+Rev-D freezes the radar as HLK-LD2412. The current firmware reads only its GPIO OUT, not UART. It therefore still cannot verify radar frame freshness, configure distance gates, or reliably distinguish a stuck-low signal from no presence. The LD2412 UART (default 115200 baud, 3.3 V logic) is reserved for a later health/range integration step.
+
+## Rev-D frozen prototype sensors
+
+The generic sensor assumptions are now replaced by a buildable Rev-D parts set; see [Rev-D buildable hardware package](revd_buildable_hardware.md) and [Rev-D BOM](bom_revd.md).
+
+Frozen sensing parts:
+
+- Panasonic EKMC1601111 PIR;
+- Hi-Link HLK-LD2412 24 GHz radar;
+- SparkFun SEN-24049 / HC-SR04-33 electrical type;
+- TI SN74AHCT14N logic conditioner.
+
+Rev-D also moves the PIR/radar 100 kOhm idle pulldown to the **sensor side** of the 10 kOhm RC resistor. The old ordering created an unnecessary DC divider. The exact-part SPICE regression checks the new topology.
 
 ## Rev-B microphone front end
 
@@ -73,7 +86,7 @@ For first bench work, USB power is acceptable if we explicitly accept that fallb
 - Echo timeout is bounded at 30 ms after the electrical timing review. A missing echo is invalid, not a valid zero-metre object.
 - PIR and radar need three consecutive active samples.
 - Range uses a five-sample median plus three consecutive near results.
-- The first 60 seconds inhibit alarms while sensors settle.
+- The first 60 seconds inhibit alarms while sensors settle. Rev-D keeps this because the selected EKMC1601111 specifies a 30 s maximum circuit-stability time, leaving startup margin.
 - `HB` now records transport activity only and does not suppress local fallback. `HEALTH` must come from a host pipeline that has checked fresh acquisition/fusion progress; `UNHEALTHY` explicitly drops host health. `ALARM` latches the local buzzer. `YELLOW` and `GREEN` set the host investigation indication without clearing an alarm. Commands are newline-terminated and length-bounded.
 - Missing `HEALTH` for more than two seconds enables physical fallback even if transport-only `HB` messages continue.
 - One or two invalid ultrasonic samples do not erase an already-established near state; three consecutive invalid samples clear the range persistence. Every invalid reading is still reported as a range fault.
