@@ -76,6 +76,28 @@ tau ~= R * C = 100 us
 
 Two AHCT inverter stages preserve the original signal polarity.
 
+## Exact-part ngspice result
+
+The Rev-D exact-part model is `hardware/spice/revd_sensor_frontend.cir`.
+
+The passing CI transient run measured:
+
+| Measurement | Result |
+|---|---:|
+| EKMC worst-case filtered HIGH | **4.4697 V** |
+| EKMC conditioned HIGH to UNO | **4.4000 V** |
+| EKMC modeled source current | **48.03 uA** |
+| EKMC RC node crossing 2.1 V | **62.86 us** |
+| LD2412 filtered HIGH | **3.2778 V** |
+| LD2412 conditioned HIGH to UNO | **4.4000 V** |
+| LD2412 RC node crossing 2.1 V | **101.16 us** |
+
+All Rev-D electrical acceptance checks passed.
+
+The modeled EKMC current remains below the 100 uA output-current limit used by Panasonic for the detection-output specification.
+
+The conditioned 4.4 V logic level is intentionally conservative: it corresponds to the SN74AHCT14 guaranteed light-load HIGH region rather than assuming an ideal 5.0 V output.
+
 ## PIR electrical loading
 
 At the worst guaranteed EKMC detection output used in the Rev-D model:
