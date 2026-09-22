@@ -1,0 +1,66 @@
+* Rev-D exact sensor front-end for buildable prototype
+*
+* Frozen prototype sensors:
+*   PIR   Panasonic EKMC1601111, 5 V supply, digital output
+*         Vout >= Vdd-0.5 V during detection at Iout <= 100 uA,
+*         output open when not detecting, stability time <= 30 s.
+*   Radar HLK-LD2412, 5 V supply, 3.3 V GPIO OUT, average current ~90 mA.
+*
+* Key Rev-D correction:
+*   The 100 kOhm idle pulldown is placed BEFORE the 10 kOhm RC series resistor.
+*   The old Rev-A arrangement placed the pulldown after the series resistor,
+*   causing unnecessary DC attenuation of the sensor HIGH.
+*
+* The SN74AHCT14 is represented by worst-case positive threshold 2.1 V and
+* a conservative 4.4 V HIGH level. Two inverters preserve polarity.
+
+VLOGIC logic_vcc 0 5
+
+* ---------------------------------------------------------------------------
+* PIR channel: worst-case guaranteed EKMC HIGH = 4.5 V at 5 V supply.
+* Open-at-idle is represented by the source returning to 0 V because the
+* external 100 kOhm pulldown defines the idle state.
+* ---------------------------------------------------------------------------
+VPIR pir_src 0 PULSE(0 4.5 1m 1n 1n 1m 2m)
+RPIR_PULL pir_src 0 100k
+RPIR_SER pir_src pir_filt 10k
+CPIR_FILT pir_filt 0 10n
+
+BPIR_INV1 pir_l1 0 V={V(pir_filt)>2.1 ? 0 : 4.4}
+RPIR_O1 pir_l1 pir_i1 50
+CPIR_O1 pir_i1 0 100p
+BPIR_INV2 pir_l2 0 V={V(pir_i1)>2.1 ? 0 : 4.4}
+RPIR_O2 pir_l2 pir_out 50
+CPIR_LOAD pir_out 0 35p
+RPIR_LEAK pir_out 0 5Meg
+
+* ---------------------------------------------------------------------------
+* Radar channel: HLK-LD2412 GPIO OUT is 3.3 V.
+* ---------------------------------------------------------------------------
+VRAD radar_src 0 PULSE(0 3.3 1m 1n 1n 1m 2m)
+RRAD_PULL radar_src 0 100k
+RRAD_SER radar_src radar_filt 10k
+CRAD_FILT radar_filt 0 10n
+
+BRAD_INV1 radar_l1 0 V={V(radar_filt)>2.1 ? 0 : 4.4}
+RRAD_O1 radar_l1 radar_i1 50
+CRAD_O1 radar_i1 0 100p
+BRAD_INV2 radar_l2 0 V={V(radar_i1)>2.1 ? 0 : 4.4}
+RRAD_O2 radar_l2 radar_out 50
+CRAD_LOAD radar_out 0 35p
+RRAD_LEAK radar_out 0 5Meg
+
+.tran 0.05u 4m
+
+.meas tran pir_filter_high FIND v(pir_filt) AT=1.5m
+.meas tran pir_out_high FIND v(pir_out) AT=1.5m
+.meas tran pir_t_2p1 WHEN v(pir_filt)=2.1 RISE=1
+.meas tran pir_t_out4 WHEN v(pir_out)=4.0 RISE=1
+.meas tran pir_source_current FIND i(VPIR) AT=1.5m
+
+.meas tran radar_filter_high FIND v(radar_filt) AT=1.5m
+.meas tran radar_out_high FIND v(radar_out) AT=1.5m
+.meas tran radar_t_2p1 WHEN v(radar_filt)=2.1 RISE=1
+.meas tran radar_t_out4 WHEN v(radar_out)=4.0 RISE=1
+
+.end
