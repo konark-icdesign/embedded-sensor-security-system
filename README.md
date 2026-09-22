@@ -2,7 +2,7 @@
 
 I started thinking about this project around 2022 and returned to it in September 2026. The idea is to monitor a room using sound, a camera and motion sensors, then check whether their readings point to the same event.
 
-The target board is the Made-in-India Arduino UNO Ek R4 WiFi. The planned installation uses the HP thin client and TP-Link router, with a microphone, camera, PIR, radar and ultrasonic sensor. Exact sensor models and electrical interfaces still need to be settled. The results recorded here come from simulation and software tests.
+The target board is the Made-in-India Arduino UNO Ek R4 WiFi. Rev-D now freezes the first buildable sensing set as Panasonic EKMC1601111 PIR, Hi-Link HLK-LD2412 radar and an HC-SR04-33 electrical-type ultrasonic module, alongside the microphone/camera path. The results recorded here still come from simulation and software tests until the breadboard/perfboard stage is measured.
 
 ## How it works
 
@@ -41,6 +41,8 @@ The first [datasheet-based electrical hardware simulation](docs/electrical_hardw
 A second [Rev-B microphone front-end simulation](docs/microphone_frontend_revb.md) now defines a breadboard-oriented analog audio path around a CMA-4544PF-W electret capsule and MCP6022 dual op amp. ngspice measured 24.81 dB gain at 1 kHz, useful roll-off at 60 Hz/8 kHz/16 kHz, 1.965 Vpp output for a 110 dB SPL equivalent input, and exposed a slow 47k/47k virtual-ground candidate that was replaced by 10k/10k. These are circuit-model results, not physical microphone measurements.
 
 A third [Rev-C power-distribution simulation](docs/power_distribution_revc.md) now links the UNO VIN supply, a provisional TPS54202 5 V sensor rail, the analog microphone rail and the alarm branch. Under the stated stress envelope, the star-ground model kept VIN at or above 11.695 V, the 5 V sensor rail at or above 4.940 V and the analog rail at or above 4.907 V. A deliberately shared alarm/microphone return created about 50.39 mV of ground movement, so that wiring topology is rejected. The regulator itself is still a datasheet-based closed-loop abstraction rather than a full vendor switching model.
+
+A fourth [Rev-D buildable hardware pass](docs/revd_buildable_hardware.md) freezes exact prototype sensors and updates the PIR/radar input network for those datasheets. It selects EKMC1601111 rather than the earlier ultra-low-power PIR candidate because the security node does not need microamp battery operation and the EKMC has a much shorter specified startup-stability window. Rev-D also fixes an unnecessary DC divider in the generic sensor input by moving the 100 kOhm idle pulldown ahead of the 10 kOhm RC series resistor. The exact-part SPICE case is run in CI. The [Rev-D BOM](docs/bom_revd.md) separates breadboard-friendly circuits from blocks that need a daughterboard/PCB.
 
 ## Running it
 
@@ -92,6 +94,8 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 - [Electrical hardware simulation](docs/electrical_hardware_simulation.md)
 - [Rev-B microphone front end](docs/microphone_frontend_revb.md)
 - [Rev-C power distribution](docs/power_distribution_revc.md)
+- [Rev-D buildable hardware](docs/revd_buildable_hardware.md)
+- [Rev-D prototype BOM](docs/bom_revd.md)
 - [HP t640 setup](docs/hp_setup.md)
 - [Learning and validation tasks](docs/learning_and_validation.md)
 
