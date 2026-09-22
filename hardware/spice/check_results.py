@@ -85,6 +85,22 @@ shared_ground_peak = measurement("power_distribution_shared_return.log", "shared
 shared_ground_quiet = measurement("power_distribution_shared_return.log", "shared_ground_quiet")
 shared_ground_alarm = measurement("power_distribution_shared_return.log", "shared_ground_alarm")
 
+revd_pir_filter_high = measurement("revd_sensor_frontend.log", "pir_filter_high")
+revd_pir_out_high = measurement("revd_sensor_frontend.log", "pir_out_high")
+revd_pir_t_2p1 = measurement("revd_sensor_frontend.log", "pir_t_2p1")
+revd_pir_t_out4 = measurement("revd_sensor_frontend.log", "pir_t_out4")
+revd_pir_source_current = abs(measurement("revd_sensor_frontend.log", "pir_source_current"))
+
+revd_radar_filter_high = measurement("revd_sensor_frontend.log", "radar_filter_high")
+revd_radar_out_high = measurement("revd_sensor_frontend.log", "radar_out_high")
+revd_radar_t_2p1 = measurement("revd_sensor_frontend.log", "radar_t_2p1")
+revd_radar_t_out4 = measurement("revd_sensor_frontend.log", "radar_t_out4")
+
+revd_pir_filter_delay = revd_pir_t_2p1 - 1e-3
+revd_pir_output_delay = revd_pir_t_out4 - 1e-3
+revd_radar_filter_delay = revd_radar_t_2p1 - 1e-3
+revd_radar_output_delay = revd_radar_t_out4 - 1e-3
+
 # All pulse sources rise at t=1 ms in these netlists.
 sensor_delay = sensor_cross - 1e-3
 sensor_logic_delay = sensor_out - 1e-3
@@ -125,6 +141,15 @@ checks = {
     "power_shared_alarm_adds_over_35mV_shift": abs(shared_ground_alarm - shared_ground_quiet) > 0.035,
     "power_shared_5V_rail_itself_still_regulated": shared_rail5_min > 4.90,
     "power_shared_analog_supply_not_collapsed": shared_analog5_min > 4.80,
+    "revd_pir_filter_high_above_4p4V": revd_pir_filter_high >= 4.40,
+    "revd_pir_output_high_above_R4_VIH": revd_pir_out_high >= 4.0,
+    "revd_pir_output_current_below_100uA": revd_pir_source_current <= 100e-6,
+    "revd_pir_filter_crossing_under_100us": 0 <= revd_pir_filter_delay <= 100e-6,
+    "revd_pir_conditioned_output_under_110us": 0 <= revd_pir_output_delay <= 110e-6,
+    "revd_radar_filter_high_above_AHCT_threshold": revd_radar_filter_high >= 3.0,
+    "revd_radar_output_high_above_R4_VIH": revd_radar_out_high >= 4.0,
+    "revd_radar_filter_crossing_under_120us": 0 <= revd_radar_filter_delay <= 120e-6,
+    "revd_radar_conditioned_output_under_130us": 0 <= revd_radar_output_delay <= 130e-6,
 }
 
 print("SPICE acceptance measurements")
@@ -161,6 +186,13 @@ print(f"Rev-C shared 5V rail minimum:    {shared_rail5_min:.3f} V")
 print(f"Rev-C shared analog rail min:    {shared_analog5_min:.3f} V")
 print(f"Rev-C shared ground peak:        {shared_ground_peak * 1e3:.2f} mV")
 print(f"Rev-C shared quiet/alarm shift:  {shared_ground_quiet * 1e3:.2f} / {shared_ground_alarm * 1e3:.2f} mV")
+print(f"Rev-D PIR filter HIGH:            {revd_pir_filter_high:.4f} V")
+print(f"Rev-D PIR conditioned HIGH:       {revd_pir_out_high:.4f} V")
+print(f"Rev-D PIR source current:         {revd_pir_source_current * 1e6:.2f} uA")
+print(f"Rev-D PIR 2.1V crossing delay:    {revd_pir_filter_delay * 1e6:.2f} us")
+print(f"Rev-D radar filter HIGH:          {revd_radar_filter_high:.4f} V")
+print(f"Rev-D radar conditioned HIGH:     {revd_radar_out_high:.4f} V")
+print(f"Rev-D radar 2.1V crossing delay:  {revd_radar_filter_delay * 1e6:.2f} us")
 
 failed = [name for name, ok in checks.items() if not ok]
 for name, ok in checks.items():
