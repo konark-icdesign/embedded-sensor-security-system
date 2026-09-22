@@ -1,0 +1,81 @@
+{
+  "scope": "deterministic host-side simulation of UNO R4 ASCII sensor packets; no physical USB or sensor measurements",
+  "checks": {
+    "normal_100ms_capture_cadence": true,
+    "arrival_jitter_not_copied_into_sensor_clock": true,
+    "sequence_gap_detected": true,
+    "board_drop_counter_correlates": true,
+    "physical_flags_mapped": true,
+    "usb_reconnect_same_session": true,
+    "usb_reconnect_missing_samples_visible": true,
+    "board_reboot_new_session": true,
+    "reboot_does_not_invent_gap": true,
+    "malformed_and_duplicate_rejected": true,
+    "uint32_wrap_preserves_session": true,
+    "uint32_wrap_time_monotonic": true
+  },
+  "passed": true,
+  "stats": {
+    "session": "uno-r4-0001",
+    "reboots": 1,
+    "sequence_gaps": 6,
+    "board_reported_drops": 6,
+    "rejected": 3
+  },
+  "wrap_stats": {
+    "session": "wrap-0000",
+    "reboots": 0,
+    "sequence_gaps": 2,
+    "board_reported_drops": 0,
+    "rejected": 0
+  },
+  "trace_count": 23,
+  "normal_cadence_seconds": {
+    "min": 0.098,
+    "max": 0.1
+  },
+  "last_pre_reboot_sample": {
+    "session": "uno-r4-0000",
+    "sequence": 27,
+    "sequence_unwrapped": 27,
+    "board_millis": 62700,
+    "board_millis_unwrapped": 62700,
+    "captured": 102.71000000000001,
+    "arrival": 102.72,
+    "pir": false,
+    "radar": false,
+    "near": false,
+    "range_metres": 3.0,
+    "range_valid": true,
+    "alarm": false,
+    "armed": true,
+    "degraded": false,
+    "fallback_alarm": false,
+    "serial_drops": 6,
+    "missing_before": 4,
+    "board_reported_drops_delta": 4,
+    "physical": {"P": false, "M": false, "U": false, "fault": false}
+  },
+  "first_post_reboot_sample": {
+    "session": "uno-r4-0001",
+    "sequence": 0,
+    "sequence_unwrapped": 0,
+    "board_millis": 120,
+    "board_millis_unwrapped": 120,
+    "captured": 103.05,
+    "arrival": 103.05,
+    "pir": false,
+    "radar": false,
+    "near": false,
+    "range_metres": 3.0,
+    "range_valid": true,
+    "alarm": false,
+    "armed": true,
+    "degraded": false,
+    "fallback_alarm": false,
+    "serial_drops": 0,
+    "missing_before": 0,
+    "board_reported_drops_delta": 0,
+    "physical": {"P": false, "M": false, "U": false, "fault": false}
+  }
+}
