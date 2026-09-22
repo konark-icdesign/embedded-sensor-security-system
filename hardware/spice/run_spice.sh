@@ -29,6 +29,7 @@ run_one microphone_frontend
 run_one microphone_vmid_startup
 run_one power_distribution_star
 run_one power_distribution_shared_return
+run_one revd_sensor_frontend
 
 python3 hardware/spice/check_results.py
 
