@@ -48,6 +48,8 @@ A fourth [Rev-D buildable hardware pass](docs/revd_buildable_hardware.md) freeze
 
 [Rev-F live board runner](docs/board_live_runner_revf.md) adds the host transport around that adapter: serial-port selection, automatic reconnect, raw and parsed JSONL evidence logs, and a compact live health summary for rate, latency, gaps, drops, reboots and sensor validity. Its deterministic simulation covers disconnect/reconnect, a sequence gap, malformed input, board restart and degraded sensor data. All ten Rev-F checks passed in CI alongside 45 Python tests. This is bench-ready software, not a claim that the UNO R4 or HP t640 USB path has already been measured.
 
+[Rev-G board/media synchronization](docs/board_media_sync_revg.md) adds the timing handoff needed before combined acquisition. It pairs each audio/camera timestamp only with the newest non-future board sample, converts board data older than 150 ms into an explicit health fault instead of reusing stale P/M/U flags, and flushes buffered physical state when the board session changes after a reboot. The threshold is an initial software assumption that must be checked against the first real USB/audio/camera capture.
+
 ## Running it
 
 Use Python 3.12. From the project folder on Windows:
@@ -61,6 +63,7 @@ python run_simulation.py --seeds 1
 python scripts/system_resilience_sim.py
 python scripts/board_serial_sim.py
 python scripts/board_live_sim.py
+python scripts/board_media_sync_sim.py
 python -m unittest discover -s tests -p "test_*.py" -v
 make hardware-stress
 make electrical-sim
@@ -103,6 +106,7 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 - [Rev-D buildable hardware](docs/revd_buildable_hardware.md)
 - [Rev-D prototype BOM](docs/bom_revd.md)
 - [Rev-F live board runner](docs/board_live_runner_revf.md)
+- [Rev-G board/media synchronization](docs/board_media_sync_revg.md)
 - [HP t640 setup](docs/hp_setup.md)
 - [Learning and validation tasks](docs/learning_and_validation.md)
 

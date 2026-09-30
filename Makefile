@@ -3,13 +3,15 @@ CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -Wpedantic
 CC ?= cc
 CFLAGS = -std=c11 -Wall -Wextra -Werror -Wpedantic
-.PHONY: simulate test board-live-sim embedded sanitize hardware-stress electrical-sim
+.PHONY: simulate test board-live-sim board-media-sync-sim embedded sanitize hardware-stress electrical-sim
 simulate:
 	$(PYTHON) run_simulation.py --seeds 10
 test:
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py' -v
 board-live-sim:
 	$(PYTHON) scripts/board_live_sim.py --output results/board_live_simulation.json
+board-media-sync-sim:
+	$(PYTHON) scripts/board_media_sync_sim.py --output results/board_media_sync_simulation.json
 embedded:
 	$(CXX) $(CXXFLAGS) tests/embedded_test.cpp -o embedded-tests
 	./embedded-tests
