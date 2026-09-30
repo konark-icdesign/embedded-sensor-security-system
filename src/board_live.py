@@ -228,11 +228,12 @@ class BoardLiveRunner:
             "fallback_alarm": None if sample is None else sample.fallback_alarm,
         }
 
-    def run(self, max_samples=None, max_connect_attempts=None):
-        """Run until interrupted or an optional deterministic test limit is met."""
+    def run(self, max_samples=None, max_connect_attempts=None, stop_event=None):
+        """Run until interrupted, stopped, or an optional test limit is met."""
         serial_obj = None
         try:
-            while max_samples is None or self.accepted < max_samples:
+            while ((max_samples is None or self.accepted < max_samples)
+                   and (stop_event is None or not stop_event.is_set())):
                 if serial_obj is None:
                     if (
                         max_connect_attempts is not None
@@ -256,7 +257,10 @@ class BoardLiveRunner:
                             and self.connect_attempts >= max_connect_attempts
                         ):
                             break
-                        self.sleep(self.reconnect_delay)
+                        if stop_event is None:
+                            self.sleep(self.reconnect_delay)
+                        else:
+                            stop_event.wait(self.reconnect_delay)
                         continue
 
                 try:
@@ -271,7 +275,10 @@ class BoardLiveRunner:
                         pass
                     serial_obj = None
                     self._emit_status(force=True)
-                    self.sleep(self.reconnect_delay)
+                    if stop_event is None:
+                        self.sleep(self.reconnect_delay)
+                    else:
+                        stop_event.wait(self.reconnect_delay)
                     continue
 
                 if raw in (b"", ""):
