@@ -1,74 +1,143 @@
-# Original scenario-runner design
+# System architecture
 
-This page describes `run_simulation.py` and the earlier independent-case evaluation. The newer continuous runner, `run_incidents.py`, adds persistent YELLOW investigations, per-incident recording, HTTP evidence delivery and the C numerical backend. Its state lifetime and recording policy are documented in [incidents.md](incidents.md); current execution evidence is in [validation.md](validation.md).
+This document describes the current intended system rather than only the
+original scenario runner. Historical simulation details remain in
+[experiment_report.md](experiment_report.md), while the scope boundary is
+recorded in [project_scope_audit.md](project_scope_audit.md).
 
-The planned setup is one room, one microphone and one camera, with PIR, radar and ultrasonic sensors connected to an Arduino. The PC handles audio, images and the main decision. USB serial is the planned local link.
+## Purpose
 
-The current implementation simulates these inputs. It does not acquire live room data.
+The prototype monitors one room using audio, a camera and three physical sensor
+channels. It does not treat any one weak observation as proof of intrusion.
+Instead it correlates observations that occur close in time and records the
+evidence for review.
 
-## Responsibilities
+The central idea is:
 
-| Part | Current job |
+```text
+microphone ──> audio anomaly ──┐
+camera ─────> image change ────┤
+PIR ────────> motion ──────────┤
+radar ──────> presence/motion ─┼─> time correlation ─> GREEN / YELLOW / RED
+ultrasonic ─> near range ──────┘
+```
+
+Sound alone cannot create RED.
+
+## Hardware / software split
+
+```text
+PIR ───────┐
+radar ─────┼─> UNO R4 firmware ──USB──┐
+ultrasonic ┘                           │
+                                      ▼
+microphone ───────────────────────> HP t640
+camera ───────────────────────────> host acquisition
+                                      │
+                                      ├─ C numerical core
+                                      ├─ Python orchestration / fusion / evidence
+                                      └─ MATLAB reference checks
+```
+
+| Part | Primary responsibility |
 |---|---|
-| Python on the host | Audio features, image changes, simulated sensor filtering, fusion and a local alert queue |
-| Arduino C++ | Sensor filtering, watchdog, heartbeat timeout and a latched local alarm |
-| MATLAB | Separate calculation and replay source; execution is now checked in CI |
+| UNO R4 C++ | physical sensor sampling/filtering, board health, packet generation, local fallback/alarm |
+| C core | selected audio feature/anomaly and corroboration calculations |
+| Python host | acquisition, timestamp synchronization, fusion/state handling, evidence storage and experiments |
+| MATLAB | independent numerical/replay checks |
+| HP t640 | intended host for the live system |
+| Router/network | evidence/notification transport only; not part of sensing |
 
-PIR, radar and range readings provide different kinds of evidence, but can share a harmless cause. None identifies a person. The camera detects image changes; it has no person detector or infrared-specific model.
+## Core state behavior
 
-## From sound to an alert
+GREEN means there is no recent accepted evidence and no active reported fault.
 
-1. A persistent audio anomaly or an extreme valid transient becomes audio evidence.
-2. Any recent evidence or sensor-health fault puts the central state into YELLOW.
-3. The fusion rule combines recently accepted audio, camera and physical detections.
-4. Qualifying evidence moves YELLOW to RED and creates an incident.
+YELLOW means an investigation is open because recent evidence or degraded sensor
+health needs corroboration.
 
-Sensors and camera processing run continuously. The requested deeper investigation of buffered infrared footage after an audio trigger remains to be implemented.
+RED means the configured correlation rule was satisfied. RED is an engineering
+state in this prototype, not a claim that a person or crime has been identified.
 
-## Current fusion rule
+The current correlation window is four seconds. Each channel retains its most
+recent accepted observation inside that window.
 
-Each channel retains its most recent accepted timestamp for four seconds.
-
-| Symbol | Reading | Points |
+| Symbol | Evidence | Current weight |
 |---|---|---:|
-| A | Audio anomaly | 1.5 |
-| V | Changed image area above 1.8% | 3 |
-| P | PIR active for three samples | 2 |
-| M | Radar active for three samples | 2 |
-| U | Near range after median filtering and persistence | 2 |
+| A | audio anomaly | 1.5 |
+| V | camera changed area above threshold | 3 |
+| P | persisted PIR activity | 2 |
+| M | persisted radar activity | 2 |
+| U | persisted near-range result | 2 |
 
-RED needs at least five points and one of these combinations:
+RED requires at least five points and one of the currently allowed combinations:
 
-- Camera plus PIR, radar or near range.
-- PIR, radar and near range together.
-- Audio plus at least two of the three physical channels.
+- camera plus PIR, radar or near range;
+- PIR + radar + near range;
+- audio plus at least two physical channels.
 
-These points are weights, not probabilities. Audio plus PIR alone stays YELLOW. That avoids some weakly supported alerts, but misses the corresponding intrusion cases. Camera plus PIR can detect a quiet entrant and can also react to a warm moving object.
+The weights are heuristics, not probabilities. They remain provisional until
+room recordings provide evidence for changing them.
 
-The four-second window is a provisional setting. In the impulse experiment, two seconds missed a third input delayed by 3.2 seconds; eight seconds combined unrelated inputs spread over seven seconds. See `results/impulse_timing_sensitivity.csv`.
+## Acquisition and timing
 
-## State clearing
+The planned live rates are:
 
-GREEN means no recent evidence or reported fault. YELLOW means suspicion or degraded sensing. RED means the correlation rule was met.
+- audio: 16 kHz mono;
+- physical telemetry: nominal 10 Hz;
+- camera processing: about 5 frames/s.
 
-RED lasts at least six seconds. After evidence expires and activity stays clear for three seconds, the state returns to GREEN, or YELLOW if a fault remains. A persistent camera fault must not keep two separate incidents joined forever.
+Rev-E through Rev-I provide the support path needed to combine those streams:
 
-The Arduino alarm is separately latched and requires its reset button. Clearing the central state does not automatically clear that latch.
+- board counter unwrap and board-to-host time mapping;
+- serial reconnect/gap/reboot handling;
+- stale board-state rejection;
+- non-future camera selection;
+- media/board synchronization;
+- evidence journal isolation across board reboots.
 
-## Timing and capture
+Those mechanisms exist to protect the sensor-fusion experiment from stale or
+mis-timestamped data. They are not separate detection features.
 
-The audio calculation uses 16 kHz samples, 2048-sample frames and a 1024-sample hop. Feature timestamps refer to completed frames. The integrated loop consumes them in 100 ms steps and uses the loop time for fusion. It therefore quantizes audio timing rather than preserving every exact frame timestamp in the fused trace.
+## Local fallback
 
-Physical inputs are sampled at 10 Hz and camera frames at 5 Hz. The generated experiment uses a shared clock. `Fusion.update` supports capture timestamps with an age check, and `PacketGate` has separate freshness tests; a live acquisition service connecting these pieces and mapping device clocks has not been implemented.
+If the host health signal is lost for more than two seconds, the board can use a
+stricter local fallback. The current fallback requires filtered PIR, radar and
+near ultrasonic evidence together for ten ticks before latching the alarm.
 
-For the selected capture trial, a five-second buffer holds completed audio chunks, available frames and sensor records. The first trigger preserves the preceding data and up to fifteen seconds afterwards. Continuous multi-incident storage, disk limits and write-failure recovery remain open tasks.
+This rule intentionally favors avoiding weak local alarms and can miss a person
+outside the ultrasonic beam. Coverage and placement must be measured physically.
 
-## Loss of the PC connection
+## Evidence recording
 
-After more than two seconds without a heartbeat, the Arduino fallback requires PIR, radar and near range together for ten 100 ms samples before latching the alarm. It needs independent power if the PC loses power. It cannot send an internet notification on its own in the current sketch.
+The host keeps incident records with acquisition timestamps and preserves board
+session boundaries. The existing continuous runner also exercises restart and
+delivery behavior.
 
-A distant entrant outside ultrasonic coverage can be missed by this fallback. This needs a placement and coverage test before hardware deployment.
+Five seconds of pre-trigger evidence and post-trigger evidence are part of the
+intended recording behavior. The live path must be evaluated with real device
+buffers before its timing can be treated as measured.
 
-## Notification test
+## What is verified and what is not
 
-SQLite stores queued incidents and a local receiver table. Retries use the same incident ID, so the receiver displays one record after restart or a lost acknowledgement. No external notification provider is connected. The current IDs also need a production session/persistence strategy before use across real service restarts.
+Verified at software/model level:
+
+- synthetic fusion scenarios and state transitions;
+- C/Python numerical agreement checks;
+- MATLAB reference execution;
+- UNO R4 target compilation;
+- host-executed embedded-core fault tests;
+- electrical/circuit models;
+- Rev-E to Rev-I fake-device/replay integration tests.
+
+Not yet established by the repository:
+
+- actual room detection accuracy;
+- actual sensor coverage and placement;
+- real USB latency/drop distribution on the HP t640;
+- real microphone callback/queue behavior;
+- real camera frame-age/drop behavior;
+- calibrated thresholds from the intended room;
+- production notification reliability.
+
+The next architecture milestone is therefore a physical synchronized capture,
+not another host abstraction layer.
