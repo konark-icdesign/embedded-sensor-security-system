@@ -109,8 +109,8 @@ USB reconnect behaviour, watchdog recovery, actual supply margins and physical s
 ## Integration gaps already visible in the code
 
 - Rev-E now parses the exact USB packet emitted by the UNO, unwraps the 32-bit sequence and `millis()` counters, detects sequence gaps and board restarts, tracks the cumulative board serial-drop counter, and maps board time onto the host acquisition clock. The deterministic fault simulation is in [Rev-E board-to-host serial ingress](board_serial_ingress_reve.md).
-- The USB bench tool is still not the complete live acquisition service. A physical serial-port reader still has to feed the Rev-E adapter on the HP, and the resulting board samples must run beside continuous microphone/camera buffers. Physical port-open/reset/reconnect behaviour remains a bench measurement, not a simulated pass.
-- Continuous audio, camera and sensor acquisition needs timestamped buffers so a sound trigger can inspect evidence from the same time. Starting the camera only after the sound would lose earlier evidence.
+- Rev-F through Rev-I now implement the software path from a physical serial port through board/media synchronization into the continuous host pipeline, including optional microphone/webcam backends. That closes the software integration gap but does **not** establish physical port-open/reset/reconnect timing, USB latency or device-drop behavior on the HP; those remain bench measurements.
+- Continuous audio, camera and sensor buffering now exists in the host software so evidence can be matched by acquisition time. The next check is whether those buffers and freshness limits behave correctly with the actual microphone, webcam and UNO connected together.
 - A binary radar OUT cannot report measurement age or distinguish every failed wire from absence. Firmware cannot recover information that the interface does not provide.
 - The local fallback requires PIR, radar and near ultrasonic range together. A person outside the ultrasonic beam can be missed. Placement and the fallback rule must be evaluated before claiming room coverage.
 

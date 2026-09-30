@@ -4,6 +4,12 @@ I started thinking about this project around 2022 and returned to it in Septembe
 
 The target board is the Made-in-India Arduino UNO Ek R4 WiFi. Rev-D now freezes the first buildable sensing set as Panasonic EKMC1601111 PIR, Hi-Link HLK-LD2412 radar and an HC-SR04-33 electrical-type ultrasonic module, alongside the microphone/camera path. The results recorded here still come from simulation and software tests until the breadboard/perfboard stage is measured.
 
+## Project boundary
+
+The project is the **multi-sensor fusion experiment**: audio, camera, PIR, radar and range evidence are correlated into GREEN/YELLOW/RED states and recorded for review. Arduino C++, the C numerical core, Python and MATLAB are implementation/verification layers around that system; none of those languages is the project by itself.
+
+Rev-E through Rev-I are retained as support infrastructure needed to carry real board/audio/camera data into the fusion path safely. They are not additional detection features and should not become an endless sequence of simulated host abstractions. The [scope audit](docs/project_scope_audit.md) records this boundary and the evidence ladder.
+
 ## How it works
 
 An unusual sound puts the system into YELLOW and opens an investigation. It checks camera and sensor activity within a four-second window. Sound alone cannot cause RED. Sound with PIR and radar can, although that combination can also produce false alarms.
@@ -92,7 +98,7 @@ More commands are in [reproduction](docs/reproduction.md) and [the incident work
 
 The next stage is circuit and firmware verification; physical assembly comes after that. The [electronics plan](docs/electronics_plan.md) records the Ek R4 pin allocation, component choices still open, and simulator limitations. A complete online R4 circuit simulation has not run: neither Wokwi nor Renesas's published online-simulator list includes the RA4M1.
 
-The live USB service, synchronization, RoomStream coordination and optional microphone/webcam backends are now implemented and simulation-tested, but still need a real UNO R4 + HP t640 bench capture. Measured device timing, dropped-frame/audio statistics and room calibration remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
+The live USB service, synchronization, RoomStream coordination and optional microphone/webcam backends are now implemented and simulation-tested. The next milestone is a real UNO R4 + HP t640 synchronized capture, not another host-only abstraction layer. Measured USB/audio/camera timing, dropped-frame/audio statistics, sensor coverage and room calibration remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
 
 Very quiet footsteps, warm moving objects and activity outside the room still need work. A real notification endpoint also needs to be connected and tested.
 
@@ -103,6 +109,7 @@ Results should distinguish simulation, individual component tests, combined hard
 The [debugging history](docs/debugging_history.md) records the problems found, fixes and remaining failures. Important original run outputs are committed in [the evidence archive](evidence/github/), including checksums and source run IDs.
 
 - [System design](docs/architecture.md)
+- [Project scope audit](docs/project_scope_audit.md)
 - [DSP calculations](docs/dsp_maths.md)
 - [Hardware and wiring](docs/hardware.md)
 - [Hardware resilience audit](docs/hardware_resilience_audit.md)
