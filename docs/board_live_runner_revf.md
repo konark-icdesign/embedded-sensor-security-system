@@ -70,4 +70,8 @@ A USB unplug causes a disconnected state and a reconnect loop. If the board keep
 
 The focused unit tests additionally exercise an arrival-delay violation against Rev-E's 0.5 s freshness gate and serial read timeouts.
 
+The first CI run after implementation passed **45 Python tests**. All ten Rev-F deterministic checks also passed: six accepted samples crossed three simulated serial connections, two disconnects were recovered, a two-sample gap and matching board drop counter remained visible, one malformed line was retained in the raw log but rejected from parsed output, and a simulated board counter reset created session `uno-r4-0001`.
+
+The reproducible result is committed as `results/board_live_simulation.json`.
+
 The committed/CI simulation is software evidence only. The next physical step is to connect the real UNO R4 to the HP t640, identify the actual port, record a short capture, unplug/replug USB once, and inspect the raw/parsed logs before making any hardware claim.

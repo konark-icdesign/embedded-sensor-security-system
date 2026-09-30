@@ -1,0 +1,41 @@
+{
+  "scope": "deterministic host-side Rev-F serial runner simulation; no physical USB, UNO R4 or sensor measurements",
+  "checks": {
+    "accepted_six_samples": true,
+    "two_disconnects_reconnected": true,
+    "gap_detected_across_reconnect": true,
+    "board_drop_counter_preserved": true,
+    "malformed_line_rejected_without_stopping": true,
+    "board_reset_started_new_session": true,
+    "raw_log_keeps_rejected_line": true,
+    "parsed_log_only_keeps_accepted_samples": true,
+    "degraded_sample_visible": true,
+    "health_status_emitted": true
+  },
+  "passed": true,
+  "final_health": {
+    "connected": true,
+    "port": "SIM",
+    "samples": 6,
+    "rate_hz": 4.310344827586378,
+    "timeouts": 0,
+    "disconnects": 2,
+    "transport_rejected": 1,
+    "session": "uno-r4-0001",
+    "sequence_gaps": 2,
+    "board_reported_drops": 2,
+    "reboots": 1,
+    "adapter_rejected": 1,
+    "last_latency_seconds": 0.0,
+    "stale_seconds": 0.0,
+    "pir": false,
+    "radar": false,
+    "near": false,
+    "range_valid": false,
+    "degraded": true,
+    "fallback_alarm": false
+  },
+  "connection_opens": 3,
+  "raw_records": 7,
+  "parsed_records": 6
+}
