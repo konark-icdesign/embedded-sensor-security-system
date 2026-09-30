@@ -100,6 +100,8 @@ The next stage is circuit and firmware verification; physical assembly comes aft
 
 The live USB service, synchronization, RoomStream coordination and optional microphone/webcam backends are now implemented and simulation-tested. The next milestone is a real UNO R4 + HP t640 synchronized capture, not another host-only abstraction layer. Measured USB/audio/camera timing, dropped-frame/audio statistics, sensor coverage and room calibration remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
 
+The first measurement workflow is now defined in [first physical bench measurement](docs/first_bench_measurement.md). A bounded run such as `python scripts/run_board_bench.py --port auto --seconds 60 --label usb-idle` records raw/parsed packets and produces cadence, latency, gap, drop and reboot statistics. The repository does not contain a physical bench result until that command is actually run with the hardware connected.
+
 Very quiet footsteps, warm moving objects and activity outside the room still need work. A real notification endpoint also needs to be connected and tested.
 
 Results should distinguish simulation, individual component tests, combined hardware tests and tests in the intended room.
@@ -110,6 +112,7 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 
 - [System design](docs/architecture.md)
 - [Project scope audit](docs/project_scope_audit.md)
+- [First physical bench measurement](docs/first_bench_measurement.md)
 - [DSP calculations](docs/dsp_maths.md)
 - [Hardware and wiring](docs/hardware.md)
 - [Hardware resilience audit](docs/hardware_resilience_audit.md)
