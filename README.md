@@ -46,6 +46,8 @@ A fourth [Rev-D buildable hardware pass](docs/revd_buildable_hardware.md) freeze
 
 [Rev-E board-to-host serial ingress](docs/board_serial_ingress_reve.md) now handles the exact UNO USB sensor line before it reaches the incident pipeline. The deterministic host-side simulation injects arrival jitter, sequence loss, a USB reconnect gap, a board reboot, malformed/duplicate packets and uint32 counter wrap. Nine focused unit tests and all twelve Rev-E simulation checks passed locally before the change was uploaded. During that run an initial fixed-offset clock mapper was rejected because lower USB latency could place a later packet in the future; the final mapper uses the lowest observed arrival-minus-board-time offset while requiring monotonic capture time. This is still not a physical USB or sensor measurement.
 
+[Rev-F live board runner](docs/board_live_runner_revf.md) adds the host transport around that adapter: serial-port selection, automatic reconnect, raw and parsed JSONL evidence logs, and a compact live health summary for rate, latency, gaps, drops, reboots and sensor validity. Its deterministic simulation covers disconnect/reconnect, a sequence gap, malformed input, board restart and degraded sensor data. This is bench-ready software, not a claim that the UNO R4 or HP t640 USB path has already been measured.
+
 ## Running it
 
 Use Python 3.12. From the project folder on Windows:
@@ -58,6 +60,7 @@ python scripts/fetch_real_audio.py
 python run_simulation.py --seeds 1
 python scripts/system_resilience_sim.py
 python scripts/board_serial_sim.py
+python scripts/board_live_sim.py
 python -m unittest discover -s tests -p "test_*.py" -v
 make hardware-stress
 make electrical-sim
@@ -80,7 +83,7 @@ More commands are in [reproduction](docs/reproduction.md) and [the incident work
 
 The next stage is circuit and firmware verification; physical assembly comes after that. The [electronics plan](docs/electronics_plan.md) records the Ek R4 pin allocation, component choices still open, and simulator limitations. A complete online R4 circuit simulation has not run: neither Wokwi nor Renesas's published online-simulator list includes the RA4M1.
 
-The live USB acquisition service, microphone and camera integration, and acquisition-time checks remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
+The live USB acquisition service is now implemented and simulation-tested, but still needs a real UNO R4 + HP t640 bench capture. Microphone/camera integration and physical acquisition-time measurements remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
 
 Very quiet footsteps, warm moving objects and activity outside the room still need work. A real notification endpoint also needs to be connected and tested.
 
@@ -99,6 +102,7 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 - [Rev-C power distribution](docs/power_distribution_revc.md)
 - [Rev-D buildable hardware](docs/revd_buildable_hardware.md)
 - [Rev-D prototype BOM](docs/bom_revd.md)
+- [Rev-F live board runner](docs/board_live_runner_revf.md)
 - [HP t640 setup](docs/hp_setup.md)
 - [Learning and validation tasks](docs/learning_and_validation.md)
 

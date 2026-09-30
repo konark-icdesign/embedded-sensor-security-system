@@ -16,3 +16,5 @@ results/incident-run/
 results/incidents-python/
 results/incidents-c/
 c-parity.json
+
+results/live/
