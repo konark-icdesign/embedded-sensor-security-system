@@ -115,6 +115,7 @@ class BoardLiveRunner:
         parsed_log=None,
         status_interval=2.0,
         status_callback=None,
+        sample_callback=None,
     ):
         self.port = port
         self.baudrate = int(baudrate)
@@ -130,6 +131,7 @@ class BoardLiveRunner:
         self.parsed_log = JsonlLogger(parsed_log)
         self.status_interval = float(status_interval)
         self.status_callback = status_callback
+        self.sample_callback = sample_callback
 
         self.connected = False
         self.active_port = None
@@ -294,6 +296,8 @@ class BoardLiveRunner:
                 self.last_arrival = arrival
                 self.last_latency = sample.arrival - sample.captured
                 self.last_sample = sample
+                if self.sample_callback is not None:
+                    self.sample_callback(sample)
                 self._emit_status()
 
             return self.health_snapshot()
