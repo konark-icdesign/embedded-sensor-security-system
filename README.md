@@ -52,6 +52,8 @@ A fourth [Rev-D buildable hardware pass](docs/revd_buildable_hardware.md) freeze
 
 [Rev-H combined acquisition coordination](docs/combined_acquisition_revh.md) now connects the live board callback and timestamp synchronizer to the existing RoomStream incident journal. Media uses its own sequence because one board sample may apply to multiple audio/camera packets. A board reboot closes the old journal and starts a separate session directory, while stale board state reaches the incident pipeline only as an explicit health fault. The current validation still uses simulated board packets and synthetic audio; physical microphone/camera callbacks are the next bench step.
 
+[Rev-I live host device acquisition](docs/live_host_devices_revi.md) adds optional microphone and webcam backends plus a threaded host runtime. Audio uses PortAudio timing mapped into the host monotonic clock, camera frames are selected only when non-future and fresh, media capture faults propagate into RoomStream health, and SQLite journal rotation is kept on the media thread. CI still uses fake devices; the real HP t640, microphone, webcam and UNO path remain unmeasured.
+
 ## Running it
 
 Use Python 3.12. From the project folder on Windows:
@@ -67,6 +69,7 @@ python scripts/board_serial_sim.py
 python scripts/board_live_sim.py
 python scripts/board_media_sync_sim.py
 python scripts/combined_acquisition_sim.py
+python scripts/live_host_runtime_sim.py
 python -m unittest discover -s tests -p "test_*.py" -v
 make hardware-stress
 make electrical-sim
@@ -89,7 +92,7 @@ More commands are in [reproduction](docs/reproduction.md) and [the incident work
 
 The next stage is circuit and firmware verification; physical assembly comes after that. The [electronics plan](docs/electronics_plan.md) records the Ek R4 pin allocation, component choices still open, and simulator limitations. A complete online R4 circuit simulation has not run: neither Wokwi nor Renesas's published online-simulator list includes the RA4M1.
 
-The live USB service, board/media synchronization and combined RoomStream coordination are now implemented and simulation-tested, but still need a real UNO R4 + HP t640 bench capture. Physical microphone/camera device callbacks and measured acquisition timing remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
+The live USB service, synchronization, RoomStream coordination and optional microphone/webcam backends are now implemented and simulation-tested, but still need a real UNO R4 + HP t640 bench capture. Measured device timing, dropped-frame/audio statistics and room calibration remain unfinished. Later, room recordings will be needed to calibrate and evaluate the detector using separate recording sessions.
 
 Very quiet footsteps, warm moving objects and activity outside the room still need work. A real notification endpoint also needs to be connected and tested.
 
@@ -111,6 +114,7 @@ The [debugging history](docs/debugging_history.md) records the problems found, f
 - [Rev-F live board runner](docs/board_live_runner_revf.md)
 - [Rev-G board/media synchronization](docs/board_media_sync_revg.md)
 - [Rev-H combined acquisition coordination](docs/combined_acquisition_revh.md)
+- [Rev-I live host device acquisition](docs/live_host_devices_revi.md)
 - [HP t640 setup](docs/hp_setup.md)
 - [Learning and validation tasks](docs/learning_and_validation.md)
 

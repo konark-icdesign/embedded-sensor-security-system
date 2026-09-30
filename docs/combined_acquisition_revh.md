@@ -60,3 +60,8 @@ The next physical stage is to provide actual host microphone and camera callback
 ## First CI fault-injection correction
 
 The first Rev-H CI run failed before the coordinator checks because the reboot fixture reset board_millis but the pre-reboot sequence was already zero. Rev-E correctly rejected that as inconsistent counter movement instead of treating it as a reboot. The fixture was corrected to start from a forward-running sequence value so both sequence and millis reset together, matching the reboot rule being tested.
+
+
+## Rev-I thread-safety correction
+
+Rev-I preserves the same session-isolation rule but defers RoomStream closure until the next media packet. The serial callback now only updates synchronized board state. This avoids closing or replacing SQLite journal state from the serial thread during live acquisition.
