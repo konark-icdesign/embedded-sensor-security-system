@@ -56,3 +56,7 @@ scripts/combined_acquisition_sim.py uses simulated UNO packets and synthetic 16 
 - post-reboot physical/fallback state does not mix with the old journal.
 
 The next physical stage is to provide actual host microphone and camera callbacks and run this coordinator with the Rev-F serial service on the HP t640.
+
+## First CI fault-injection correction
+
+The first Rev-H CI run failed before the coordinator checks because the reboot fixture reset board_millis but the pre-reboot sequence was already zero. Rev-E correctly rejected that as inconsistent counter movement instead of treating it as a reboot. The fixture was corrected to start from a forward-running sequence value so both sequence and millis reset together, matching the reboot rule being tested.

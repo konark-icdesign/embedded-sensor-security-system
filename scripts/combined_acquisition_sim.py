@@ -45,7 +45,7 @@ def run():
 
         waiting = c.push_media(audio, None, 99.900, 99.905)
 
-        b0 = adapter.ingest(wire(0, 60000, p=1), 100.010)
+        b0 = adapter.ingest(wire(100, 60000, p=1), 100.010)
         c.on_board_sample(b0)
         first = c.push_media(audio, None, b0.captured + .050, b0.captured + .055)
         second = c.push_media(audio, None, b0.captured + .080, b0.captured + .085)
