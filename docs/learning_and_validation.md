@@ -30,7 +30,9 @@ A door contact, constrained radar range or a camera region of interest are optio
 
 The continuous incident runner and C numerical core are implemented; use the Incident pipeline workflow to check their current validation status. Python remains the numerical reference. See `docs/incidents.md` for the investigation, recording, restart and HTTP delivery interfaces.
 
-MATLAB differences are checked in the reference CI job. The hardware work includes live acquisition, device-clock mapping, reconnect handling, sensor placement, independent board power and a selected remote notification service.
+MATLAB differences are checked in the reference CI job. Live acquisition, device-clock mapping and reconnect handling now have software implementations and fake-device tests. The next hardware work is to measure those paths on the UNO R4 + HP setup, then evaluate sensor placement, independent board power and a selected remote notification service.
+
+Do not add another host-only abstraction simply to create a new revision. New firmware, C or Python work should be tied to a measured limitation, a core sensor-fusion requirement or a reproducible validation gap. See [project scope audit](project_scope_audit.md).
 
 ## Later room tests
 
