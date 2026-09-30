@@ -81,6 +81,8 @@ jobs:
         run: python scripts/board_live_sim.py --output results/board_live_simulation.json
       - name: Rev-G board/media synchronization simulation
         run: python scripts/board_media_sync_sim.py --output results/board_media_sync_simulation.json
+      - name: Rev-H combined acquisition simulation
+        run: python scripts/combined_acquisition_sim.py --output results/combined_acquisition_simulation.json
       - name: Build C and Arduino host logic
         run: make embedded sanitize hardware-stress electrical-sim incident-build c-sanitize
       - name: Check C numerical parity
@@ -116,5 +118,6 @@ jobs:
             results/board_serial_simulation.json
             results/board_live_simulation.json
             results/board_media_sync_simulation.json
+            results/combined_acquisition_simulation.json
             c-parity.json
           retention-days: 14
