@@ -77,6 +77,8 @@ jobs:
         run: python -m pytest -q
       - name: Rev-E board serial fault simulation
         run: python scripts/board_serial_sim.py --output results/board_serial_simulation.json
+      - name: Rev-F live board runner simulation
+        run: python scripts/board_live_sim.py --output results/board_live_simulation.json
       - name: Build C and Arduino host logic
         run: make embedded sanitize hardware-stress electrical-sim incident-build c-sanitize
       - name: Check C numerical parity
@@ -110,5 +112,6 @@ jobs:
             results/summary.json
             results/embedded_replay.json
             results/board_serial_simulation.json
+            results/board_live_simulation.json
             c-parity.json
           retention-days: 14
