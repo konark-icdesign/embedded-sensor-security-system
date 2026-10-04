@@ -92,7 +92,9 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
     normal_board_period_ms = []
     transport_interval_error_ms = []
     arrival_nonmonotonic = 0
+    mapped_capture_nonmonotonic = 0
     board_nonmonotonic = 0
+    negative_transport_latency = 0
 
     for row in parsed_rows:
         latency = row.get("latency_seconds")
@@ -102,7 +104,10 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
             if arrival is not None and captured is not None:
                 latency = float(arrival) - float(captured)
         if latency is not None and math.isfinite(float(latency)):
-            latencies_ms.append(float(latency) * 1000.0)
+            latency = float(latency)
+            latencies_ms.append(latency * 1000.0)
+            if latency < 0.0:
+                negative_transport_latency += 1
 
     for previous, current in zip(parsed_rows, parsed_rows[1:]):
         previous_arrival = float(previous["arrival"])
@@ -111,6 +116,15 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
         all_arrival_intervals_ms.append(arrival_delta_ms)
         if arrival_delta_ms <= 0:
             arrival_nonmonotonic += 1
+
+        previous_captured = previous.get("captured")
+        current_captured = current.get("captured")
+        if previous_captured is not None and current_captured is not None:
+            capture_delta_ms = (
+                float(current_captured) - float(previous_captured)
+            ) * 1000.0
+            if capture_delta_ms <= 0:
+                mapped_capture_nonmonotonic += 1
 
         same_session = previous.get("session") == current.get("session")
         if not same_session:
@@ -180,7 +194,9 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
         "sequence_gaps": sequence_gaps,
         "board_reported_drops": board_reported_drops,
         "arrival_nonmonotonic_intervals": arrival_nonmonotonic,
+        "mapped_capture_nonmonotonic_intervals": mapped_capture_nonmonotonic,
         "board_nonmonotonic_intervals": board_nonmonotonic,
+        "negative_transport_latency_samples": negative_transport_latency,
         "transport_latency_ms": _stats(latencies_ms),
         "all_arrival_interval_ms": _stats(all_arrival_intervals_ms),
         "normal_contiguous_board_period_ms": _stats(normal_board_period_ms),
