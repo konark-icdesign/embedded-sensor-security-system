@@ -126,6 +126,7 @@ class BoardLiveTests(unittest.TestCase):
             parsed_rows = [json.loads(x) for x in parsed.read_text().splitlines()]
 
         self.assertEqual(result["samples"], 6)
+        self.assertEqual(result["ports_seen"], ["COM7"])
         self.assertEqual(result["disconnects"], 2)
         self.assertEqual(result["sequence_gaps"], 2)
         self.assertEqual(result["board_reported_drops"], 2)
@@ -137,6 +138,30 @@ class BoardLiveTests(unittest.TestCase):
         self.assertTrue(any(not x["accepted"] for x in raw_rows))
         self.assertTrue(parsed_rows[-1]["degraded"])
         self.assertFalse(parsed_rows[-1]["range_valid"])
+
+    def test_auto_reconnect_records_changed_port(self):
+        clock = FakeClock(30.0)
+        factory = Factory(clock, [
+            [
+                (.010, packet(0, 1000)),
+                (.100, OSError("unplug")),
+            ],
+            [
+                (.200, packet(1, 1100)),
+            ],
+        ])
+        ports = iter(["COM7", "COM8"])
+        runner = BoardLiveRunner(
+            port="auto",
+            port_resolver=lambda: next(ports),
+            serial_factory=factory,
+            clock=clock,
+            wall_clock=lambda: 0.0,
+            sleep=lambda dt: clock.advance(dt),
+            reconnect_delay=.05,
+        )
+        result = runner.run(max_samples=2, max_connect_attempts=2)
+        self.assertEqual(result["ports_seen"], ["COM7", "COM8"])
 
     def test_stale_packet_rejected_but_runner_continues(self):
         clock = FakeClock(10.0)
