@@ -135,6 +135,7 @@ class BoardLiveRunner:
 
         self.connected = False
         self.active_port = None
+        self.ports_seen = []
         self.connect_attempts = 0
         self.disconnects = 0
         self.timeouts = 0
@@ -208,6 +209,7 @@ class BoardLiveRunner:
         return {
             "connected": self.connected,
             "port": self.active_port,
+            "ports_seen": list(self.ports_seen),
             "samples": self.accepted,
             "rate_hz": rate_hz,
             "timeouts": self.timeouts,
@@ -246,6 +248,8 @@ class BoardLiveRunner:
                         serial_obj = self.serial_factory(
                             self.active_port, self.baudrate, self.timeout
                         )
+                        if self.active_port not in self.ports_seen:
+                            self.ports_seen.append(self.active_port)
                         self.connected = True
                         self._emit_status(force=True)
                     except (OSError, IOError, PortSelectionError, RuntimeError):
