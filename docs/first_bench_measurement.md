@@ -28,6 +28,8 @@ The analyzer reports:
 - normal contiguous host arrival period;
 - transport interval error = host interval - board interval;
 - mapped transport latency distribution;
+- mapped capture timestamps that move backward;
+- negative mapped latency, where capture time lands after host arrival;
 - sequence gaps;
 - board-reported serial drops;
 - board sessions/reboots;
@@ -94,6 +96,7 @@ Only after these runs should implementation change. Examples:
 
 - real sequence loss -> investigate firmware/USB/host scheduling;
 - large latency tail -> revisit buffering/freshness assumptions;
+- negative or backward mapped capture time -> inspect the Rev-E clock mapper before media fusion;
 - false invalid ranges -> inspect ultrasonic electrical/firmware path;
 - board restart on reconnect -> verify intended session handling;
 - stable serial path -> move to microphone capture and then camera.

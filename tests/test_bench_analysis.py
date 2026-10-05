@@ -67,6 +67,20 @@ class BenchAnalysisTests(unittest.TestCase):
         self.assertEqual(result["sensor_observations"]["degraded"], 1)
         self.assertEqual(result["raw_transport"]["rejected"], 1)
 
+    def test_flags_clock_mapping_that_goes_backward_or_future(self):
+        parsed = [
+            sample("uno-r4-0000", 0, 1000, 10.100, 10.090),
+            sample("uno-r4-0000", 1, 1100, 10.200, 10.210),
+            sample("uno-r4-0000", 2, 1200, 10.300, 10.150),
+        ]
+
+        result = analyze_board_bench(parsed)
+
+        self.assertEqual(result["negative_transport_latency_samples"], 1)
+        self.assertEqual(
+            result["mapped_capture_nonmonotonic_intervals"], 1
+        )
+
     def test_empty_capture_is_reported_without_fake_numbers(self):
         result = analyze_board_bench([], [])
         self.assertEqual(result["samples"], 0)
