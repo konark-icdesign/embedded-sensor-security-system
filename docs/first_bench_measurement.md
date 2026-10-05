@@ -13,7 +13,7 @@ The bounded bench command uses the existing Rev-F transport and stores:
 - `board_raw.jsonl` — every received packet line, including rejected lines;
 - `board_samples.jsonl` — validated and timestamp-mapped board samples;
 - `health.jsonl` — periodic runner state including disconnects/timeouts/gaps;
-- `metadata.json` — requested duration, port argument and UTC run times;
+- `metadata.json` — requested duration, requested/resolved ports, host/Python version and UTC run times;
 - `bench_summary.json` — timing/drop/reboot/sensor-health measurements.
 
 The summary deliberately has no invented PASS threshold.
@@ -52,7 +52,9 @@ python scripts/run_board_bench.py --port auto --seconds 60 --label usb-idle
 If automatic selection is ambiguous, use the actual COM/device name.
 
 Do not deliberately unplug USB during this first run. The purpose is to measure
-the ordinary cadence and transport latency distribution.
+the ordinary cadence and transport latency distribution. Check `metadata.json`
+afterward: `resolved_ports_seen` should identify the actual COM/device path used
+rather than leaving the evidence labelled only as `auto`.
 
 ## Trial 2 — reconnect
 
