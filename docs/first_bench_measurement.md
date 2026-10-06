@@ -13,8 +13,9 @@ The bounded bench command uses the existing Rev-F transport and stores:
 - `board_raw.jsonl` — every received packet line, including rejected lines;
 - `board_samples.jsonl` — validated and timestamp-mapped board samples;
 - `health.jsonl` — periodic runner state including disconnects/timeouts/gaps;
-- `metadata.json` — requested duration, requested/resolved ports, host/Python version and UTC run times;
-- `bench_summary.json` — timing/drop/reboot/sensor-health measurements.
+- `metadata.json` — requested duration, requested/resolved ports, host/Python version, Git revision/dirty state and UTC run times;
+- `bench_summary.json` — timing/drop/reboot/sensor-health measurements;
+- `capture_integrity.json` — byte counts and SHA-256 hashes for the raw, parsed, health, metadata and summary files.
 
 The summary deliberately has no invented PASS threshold.
 
@@ -54,7 +55,10 @@ If automatic selection is ambiguous, use the actual COM/device name.
 Do not deliberately unplug USB during this first run. The purpose is to measure
 the ordinary cadence and transport latency distribution. Check `metadata.json`
 afterward: `resolved_ports_seen` should identify the actual COM/device path used
-rather than leaving the evidence labelled only as `auto`.
+rather than leaving the evidence labelled only as `auto`. Also confirm
+`git_revision` identifies the code used for the run and `git_dirty` is false
+for a reproducible baseline capture. `capture_integrity.json` is written last;
+if an evidence file is later edited, its stored SHA-256 will no longer match.
 
 ## Trial 2 — reconnect
 
