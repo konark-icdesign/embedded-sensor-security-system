@@ -2,10 +2,12 @@
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import platform
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -25,6 +27,52 @@ def _write_json(path, value):
     Path(path).write_text(
         json.dumps(value, indent=2) + "\n", encoding="utf-8"
     )
+
+
+def _source_state():
+    try:
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        dirty = bool(
+            subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return {"git_revision": None, "git_dirty": None}
+    return {"git_revision": revision or None, "git_dirty": dirty}
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _write_integrity_manifest(path, files):
+    records = {}
+    for file_path in files:
+        file_path = Path(file_path)
+        if not file_path.exists():
+            continue
+        records[file_path.name] = {
+            "bytes": file_path.stat().st_size,
+            "sha256": _sha256(file_path),
+        }
+    manifest = {"algorithm": "sha256", "files": records}
+    _write_json(path, manifest)
+    return manifest
 
 
 def main():
@@ -52,6 +100,7 @@ def main():
     health_path = output / "health.jsonl"
     metadata_path = output / "metadata.json"
     summary_path = output / "bench_summary.json"
+    integrity_path = output / "capture_integrity.json"
 
     started_wall = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
@@ -97,6 +146,7 @@ def main():
         health_handle.close()
 
     ended_wall = datetime.now(timezone.utc)
+    source_state = _source_state()
     metadata = {
         "label": args.label,
         "requested_seconds": args.seconds,
@@ -105,6 +155,8 @@ def main():
         "baud": args.baud,
         "host_platform": platform.platform(),
         "python_version": platform.python_version(),
+        "git_revision": source_state["git_revision"],
+        "git_dirty": source_state["git_dirty"],
         "started_utc": started_wall.isoformat(),
         "ended_utc": ended_wall.isoformat(),
         "host_elapsed_seconds": time.monotonic() - started_monotonic,
@@ -123,6 +175,10 @@ def main():
         "analysis": analysis,
     }
     _write_json(summary_path, summary)
+    _write_integrity_manifest(
+        integrity_path,
+        [raw_path, parsed_path, health_path, metadata_path, summary_path],
+    )
 
     print(
         "SUMMARY samples={} gaps={} drops={} sessions={} output={}".format(
