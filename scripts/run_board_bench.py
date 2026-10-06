@@ -4,6 +4,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import platform
 import re
 import sys
 import threading
@@ -100,7 +101,10 @@ def main():
         "label": args.label,
         "requested_seconds": args.seconds,
         "port_argument": args.port,
+        "resolved_ports_seen": health.get("ports_seen", []),
         "baud": args.baud,
+        "host_platform": platform.platform(),
+        "python_version": platform.python_version(),
         "started_utc": started_wall.isoformat(),
         "ended_utc": ended_wall.isoformat(),
         "host_elapsed_seconds": time.monotonic() - started_monotonic,
