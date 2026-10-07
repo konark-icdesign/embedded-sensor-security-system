@@ -60,6 +60,16 @@ rather than leaving the evidence labelled only as `auto`. Also confirm
 for a reproducible baseline capture. `capture_integrity.json` is written last;
 if an evidence file is later edited, its stored SHA-256 will no longer match.
 
+Verify a capture before analysis, archiving or transfer:
+
+```text
+python scripts/verify_board_bench.py results/bench/<capture>
+```
+
+The command exits successfully only when every file recorded by
+`capture_integrity.json` is present with the expected byte count and SHA-256.
+It also rejects manifest filenames that try to escape the capture directory.
+
 ## Trial 2 — reconnect
 
 Run a separate capture for 90 seconds:
