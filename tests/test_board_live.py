@@ -252,6 +252,19 @@ class BoardLiveTests(unittest.TestCase):
         self.assertIn("latency=18.0 ms", line)
         self.assertIn("gaps=1", line)
 
+    def test_health_formatter_shows_disconnected_connection_error(self):
+        status = {
+            "connected": False, "port": None, "session": "uno-r4-0000",
+            "samples": 0, "rate_hz": None, "last_latency_seconds": None,
+            "sequence_gaps": 0, "board_reported_drops": 0, "reboots": 0,
+            "transport_rejected": 0, "pir": None, "radar": None,
+            "near": None, "range_valid": None, "degraded": None,
+            "last_connection_error": "OSError: access denied",
+        }
+        line = format_health(status)
+        self.assertIn("BOARD disconnected", line)
+        self.assertIn("connection_error=OSError: access denied", line)
+
 
 if __name__ == "__main__":
     unittest.main()
