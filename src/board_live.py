@@ -337,7 +337,7 @@ def format_health(status):
     latency = status["last_latency_seconds"]
     rate_text = "n/a" if rate is None else "{:.2f} Hz".format(rate)
     latency_text = "n/a" if latency is None else "{:.1f} ms".format(latency * 1000.0)
-    return (
+    line = (
         "BOARD {state} port={port} session={session} samples={samples} "
         "rate={rate} latency={latency} gaps={gaps} board_drops={drops} "
         "reboots={reboots} rejected={rejected} P={pir} M={radar} U={near} "
@@ -359,3 +359,6 @@ def format_health(status):
         range_valid=status["range_valid"],
         degraded=status["degraded"],
     )
+    if not status["connected"] and status.get("last_connection_error"):
+        line += " connection_error={}".format(status["last_connection_error"])
+    return line
