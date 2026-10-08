@@ -50,7 +50,14 @@ Connect the flashed UNO R4 to the HP and leave it untouched for 60 seconds.
 python scripts/run_board_bench.py --port auto --seconds 60 --label usb-idle
 ```
 
-If automatic selection is ambiguous, use the actual COM/device name.
+If automatic selection is ambiguous, use the actual COM/device name. Connection
+failures are retained in the runtime health record, including the last error and
+number of connection attempts. A zero-sample run now prints the concrete reason
+when possible: port-selection/open failure, rejected non-UNO serial traffic, or
+a port that opened but produced no valid telemetry.
+
+Close Arduino Serial Monitor before starting the capture because only one
+process should own the serial port.
 
 Do not deliberately unplug USB during this first run. The purpose is to measure
 the ordinary cadence and transport latency distribution. Check `metadata.json`

@@ -163,6 +163,45 @@ class BoardLiveTests(unittest.TestCase):
         result = runner.run(max_samples=2, max_connect_attempts=2)
         self.assertEqual(result["ports_seen"], ["COM7", "COM8"])
 
+    def test_connection_error_is_preserved_in_health(self):
+        clock = FakeClock(40.0)
+
+        def fail_open(port, baudrate, timeout):
+            del port, baudrate, timeout
+            raise OSError("access denied")
+
+        runner = BoardLiveRunner(
+            port="COM7",
+            serial_factory=fail_open,
+            clock=clock,
+            wall_clock=lambda: 0.0,
+            sleep=lambda dt: clock.advance(dt),
+            reconnect_delay=.05,
+        )
+        result = runner.run(max_connect_attempts=1)
+        self.assertEqual(result["connect_attempts"], 1)
+        self.assertEqual(result["connection_errors"], 1)
+        self.assertIn("access denied", result["last_connection_error"])
+
+    def test_resolution_failures_respect_connect_attempt_limit(self):
+        clock = FakeClock(50.0)
+
+        def no_port():
+            raise PortSelectionError("no serial ports found")
+
+        runner = BoardLiveRunner(
+            port="auto",
+            port_resolver=no_port,
+            clock=clock,
+            wall_clock=lambda: 0.0,
+            sleep=lambda dt: clock.advance(dt),
+            reconnect_delay=.05,
+        )
+        result = runner.run(max_connect_attempts=2)
+        self.assertEqual(result["connect_attempts"], 2)
+        self.assertEqual(result["connection_errors"], 2)
+        self.assertIn("no serial ports found", result["last_connection_error"])
+
     def test_stale_packet_rejected_but_runner_continues(self):
         clock = FakeClock(10.0)
         factory = Factory(clock, [[
@@ -212,6 +251,19 @@ class BoardLiveTests(unittest.TestCase):
         self.assertIn("rate=10.00 Hz", line)
         self.assertIn("latency=18.0 ms", line)
         self.assertIn("gaps=1", line)
+
+    def test_health_formatter_shows_disconnected_connection_error(self):
+        status = {
+            "connected": False, "port": None, "session": "uno-r4-0000",
+            "samples": 0, "rate_hz": None, "last_latency_seconds": None,
+            "sequence_gaps": 0, "board_reported_drops": 0, "reboots": 0,
+            "transport_rejected": 0, "pir": None, "radar": None,
+            "near": None, "range_valid": None, "degraded": None,
+            "last_connection_error": "OSError: access denied",
+        }
+        line = format_health(status)
+        self.assertIn("BOARD disconnected", line)
+        self.assertIn("connection_error=OSError: access denied", line)
 
 
 if __name__ == "__main__":
