@@ -137,6 +137,8 @@ class BoardLiveRunner:
         self.active_port = None
         self.ports_seen = []
         self.connect_attempts = 0
+        self.connection_errors = 0
+        self.last_connection_error = None
         self.disconnects = 0
         self.timeouts = 0
         self.accepted = 0
@@ -210,6 +212,9 @@ class BoardLiveRunner:
             "connected": self.connected,
             "port": self.active_port,
             "ports_seen": list(self.ports_seen),
+            "connect_attempts": self.connect_attempts,
+            "connection_errors": self.connection_errors,
+            "last_connection_error": self.last_connection_error,
             "samples": self.accepted,
             "rate_hz": rate_hz,
             "timeouts": self.timeouts,
@@ -243,8 +248,8 @@ class BoardLiveRunner:
                     ):
                         break
                     try:
-                        self.active_port = self._resolve_port()
                         self.connect_attempts += 1
+                        self.active_port = self._resolve_port()
                         serial_obj = self.serial_factory(
                             self.active_port, self.baudrate, self.timeout
                         )
@@ -252,7 +257,11 @@ class BoardLiveRunner:
                             self.ports_seen.append(self.active_port)
                         self.connected = True
                         self._emit_status(force=True)
-                    except (OSError, IOError, PortSelectionError, RuntimeError):
+                    except (OSError, IOError, PortSelectionError, RuntimeError) as exc:
+                        self.connection_errors += 1
+                        self.last_connection_error = "{}: {}".format(
+                            type(exc).__name__, exc
+                        )
                         self.connected = False
                         self.active_port = None
                         self._emit_status(force=True)
