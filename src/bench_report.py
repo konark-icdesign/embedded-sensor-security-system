@@ -49,6 +49,10 @@ def format_bench_report(summary):
         ),
         "  git_revision: {}".format(metadata.get("git_revision") or "n/a"),
         "  git_dirty: {}".format(metadata.get("git_dirty")),
+        "  reference_distance_m: {}".format(
+            _number(metadata.get("reference_distance_m"))
+        ),
+        "  setup_note: {}".format(metadata.get("setup_note") or "n/a"),
         "",
         "Transport",
         "  samples: {}".format(analysis.get("samples", 0)),
