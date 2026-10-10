@@ -104,12 +104,21 @@ def main():
     parser.add_argument("--label", default="usb-idle")
     parser.add_argument("--output-root", default="results/bench")
     parser.add_argument("--baud", type=int, default=115200)
+    parser.add_argument("--reference-distance-m", type=float)
+    parser.add_argument("--setup-note")
     args = parser.parse_args()
 
     if args.seconds <= 0:
         parser.error("--seconds must be positive")
     if not _LABEL.fullmatch(args.label):
         parser.error("--label may contain only letters, digits, '_' and '-'")
+    if (
+        args.reference_distance_m is not None
+        and args.reference_distance_m <= 0
+    ):
+        parser.error("--reference-distance-m must be positive")
+    if args.setup_note is not None and len(args.setup_note) > 500:
+        parser.error("--setup-note must be 500 characters or fewer")
 
     preflight = run_preflight(
         port=args.port,
@@ -192,6 +201,8 @@ def main():
         "port_argument": args.port,
         "resolved_ports_seen": health.get("ports_seen", []),
         "baud": args.baud,
+        "reference_distance_m": args.reference_distance_m,
+        "setup_note": args.setup_note,
         "host_platform": platform.platform(),
         "python_version": platform.python_version(),
         "preflight_selected_port": preflight["selected_port"],
