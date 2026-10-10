@@ -14,6 +14,8 @@ class BenchReportTests(unittest.TestCase):
                 "resolved_ports_seen": ["COM7"],
                 "git_revision": "abc123",
                 "git_dirty": False,
+                "reference_distance_m": 1.0,
+                "setup_note": "flat target, tape measured",
             },
             "runtime_health": {
                 "connect_attempts": 1,
@@ -71,6 +73,8 @@ class BenchReportTests(unittest.TestCase):
 
         self.assertIn("label: usb-idle", report)
         self.assertIn("resolved_ports_seen: COM7", report)
+        self.assertIn("reference_distance_m: 1.000", report)
+        self.assertIn("setup_note: flat target, tape measured", report)
         self.assertIn("observed_sample_rate_hz: 10.000", report)
         self.assertIn("sequence_gaps: 2", report)
         self.assertIn("p95=8.100 ms", report)
