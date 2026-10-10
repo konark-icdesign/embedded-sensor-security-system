@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.bench_analysis import analyze_board_bench_files
+from src.bench_preflight import format_preflight, run_preflight
 from src.board_live import BoardLiveRunner, format_health
 
 
@@ -109,6 +110,22 @@ def main():
     if not _LABEL.fullmatch(args.label):
         parser.error("--label may contain only letters, digits, '_' and '-'")
 
+    preflight = run_preflight(
+        port=args.port,
+        output_root=args.output_root,
+        repo_root=ROOT,
+    )
+    print(format_preflight(preflight), flush=True)
+    if not preflight["ok"]:
+        for item in preflight["serial_ports"]:
+            print(
+                "PORT device={device} description={description} "
+                "manufacturer={manufacturer} product={product}".format(**item),
+                file=sys.stderr,
+                flush=True,
+            )
+        raise SystemExit(2)
+
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output = Path(args.output_root) / (args.label + "-" + stamp)
     if output.exists():
@@ -175,6 +192,8 @@ def main():
         "baud": args.baud,
         "host_platform": platform.platform(),
         "python_version": platform.python_version(),
+        "preflight_selected_port": preflight["selected_port"],
+        "preflight_serial_ports": preflight["serial_ports"],
         "git_revision": source_state["git_revision"],
         "git_dirty": source_state["git_dirty"],
         "started_utc": started_wall.isoformat(),

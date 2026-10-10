@@ -42,6 +42,25 @@ Normal cadence statistics exclude known sequence gaps and session changes. This
 prevents a USB outage or reboot from being averaged into the nominal 100 ms
 sample period.
 
+## Preflight
+
+The normal bench command now runs preflight automatically before creating a
+timestamped capture directory. It checks that pyserial can enumerate ports, that
+the requested/automatic port can be resolved, that the bench output root is
+writable and whether the Git working tree is dirty.
+
+To inspect those checks without starting a capture:
+
+```text
+python scripts/preflight_board_bench.py --port auto
+```
+
+Add `--json` for a machine-readable report. A dirty working tree is a warning,
+not a hard failure, because the capture metadata already records
+`git_dirty=true`. Missing/ambiguous ports and an unwritable output root are hard
+failures. The preflight does not open the serial port or claim that hardware is
+working; the bounded capture remains the actual transport test.
+
 ## Trial 1 — steady USB
 
 Connect the flashed UNO R4 to the HP and leave it untouched for 60 seconds.
@@ -62,7 +81,9 @@ process should own the serial port.
 Do not deliberately unplug USB during this first run. The purpose is to measure
 the ordinary cadence and transport latency distribution. Check `metadata.json`
 afterward: `resolved_ports_seen` should identify the actual COM/device path used
-rather than leaving the evidence labelled only as `auto`. Also confirm
+rather than leaving the evidence labelled only as `auto`. The metadata also
+keeps the preflight port inventory so the device list immediately before the run
+is preserved. Also confirm
 `git_revision` identifies the code used for the run and `git_dirty` is false
 for a reproducible baseline capture. `capture_integrity.json` is written last;
 if an evidence file is later edited, its stored SHA-256 will no longer match.
