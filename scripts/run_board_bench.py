@@ -75,6 +75,26 @@ def _write_integrity_manifest(path, files):
     return manifest
 
 
+def _zero_sample_diagnostic(health):
+    connection_error = health.get("last_connection_error")
+    if connection_error:
+        return "connection failed: {}".format(connection_error)
+    rejected = int(health.get("transport_rejected", 0) or 0)
+    if rejected:
+        return (
+            "{} serial line(s) were rejected; verify the selected device, "
+            "UNO R4 firmware and baud rate"
+        ).format(rejected)
+    timeouts = int(health.get("timeouts", 0) or 0)
+    if timeouts:
+        return (
+            "serial port opened but no valid telemetry arrived "
+            "({} read timeout(s)); close Arduino Serial Monitor and verify "
+            "the firmware is running"
+        ).format(timeouts)
+    return "no valid board telemetry was received"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", default="auto")
@@ -192,6 +212,13 @@ def main():
     )
 
     if analysis["samples"] == 0:
+        print(
+            "ERROR no valid board samples: {}".format(
+                _zero_sample_diagnostic(health)
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
         raise SystemExit(2)
 
 
