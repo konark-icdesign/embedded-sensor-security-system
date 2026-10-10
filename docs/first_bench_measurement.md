@@ -15,9 +15,12 @@ The bounded bench command uses the existing Rev-F transport and stores:
 - `health.jsonl` — periodic runner state including disconnects/timeouts/gaps;
 - `metadata.json` — requested duration, requested/resolved ports, host/Python version, Git revision/dirty state and UTC run times;
 - `bench_summary.json` — timing/drop/reboot/sensor-health measurements;
-- `capture_integrity.json` — byte counts and SHA-256 hashes for the raw, parsed, health, metadata and summary files.
+- `bench_report.txt` — compact human-readable measurements with no invented PASS/FAIL threshold;
+- `capture_integrity.json` — byte counts and SHA-256 hashes for the raw, parsed, health, metadata, summary and report files.
 
-The summary deliberately has no invented PASS threshold.
+The summary and text report deliberately have no invented PASS threshold.
+`bench_report.txt` is intended for quick bench review; `bench_summary.json`
+remains the machine-readable source for detailed analysis.
 
 ## Metrics
 
