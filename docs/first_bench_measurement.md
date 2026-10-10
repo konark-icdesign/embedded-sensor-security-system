@@ -121,11 +121,14 @@ the build. For ultrasonic testing, use separate static-distance captures rather
 than moving the target continuously, for example:
 
 ```text
-python scripts/run_board_bench.py --port auto --seconds 30 --label range-static-1m
+python scripts/run_board_bench.py --port auto --seconds 30 --label range-static-1m --reference-distance-m 1.0 --setup-note "flat target, tape measured"
 ```
 
-Record the actual tape-measured distance separately. Repeat at other useful
-distances and include an invalid/no-echo condition. Do not tune the fusion
+Use `--reference-distance-m` for the actual tape-measured distance so the
+ground-truth value is stored inside the capture metadata instead of in a
+separate note. `--setup-note` can hold a short physical setup description.
+Repeat at other useful distances and include an invalid/no-echo condition
+(without a reference distance when there is no target). Do not tune the fusion
 threshold from these captures; this trial is for the sensor/firmware path.
 
 ## Reanalyzing an existing capture
