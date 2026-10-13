@@ -15,9 +15,12 @@ The bounded bench command uses the existing Rev-F transport and stores:
 - `health.jsonl` — periodic runner state including disconnects/timeouts/gaps;
 - `metadata.json` — requested duration, requested/resolved ports, host/Python version, Git revision/dirty state and UTC run times;
 - `bench_summary.json` — timing/drop/reboot/sensor-health measurements;
-- `capture_integrity.json` — byte counts and SHA-256 hashes for the raw, parsed, health, metadata and summary files.
+- `bench_report.txt` — compact human-readable measurements with no invented PASS/FAIL threshold;
+- `capture_integrity.json` — byte counts and SHA-256 hashes for the raw, parsed, health, metadata, summary and report files.
 
-The summary deliberately has no invented PASS threshold.
+The summary and text report deliberately have no invented PASS threshold.
+`bench_report.txt` is intended for quick bench review; `bench_summary.json`
+remains the machine-readable source for detailed analysis.
 
 ## Metrics
 
@@ -118,11 +121,14 @@ the build. For ultrasonic testing, use separate static-distance captures rather
 than moving the target continuously, for example:
 
 ```text
-python scripts/run_board_bench.py --port auto --seconds 30 --label range-static-1m
+python scripts/run_board_bench.py --port auto --seconds 30 --label range-static-1m --reference-distance-m 1.0 --setup-note "flat target, tape measured"
 ```
 
-Record the actual tape-measured distance separately. Repeat at other useful
-distances and include an invalid/no-echo condition. Do not tune the fusion
+Use `--reference-distance-m` for the actual tape-measured distance so the
+ground-truth value is stored inside the capture metadata instead of in a
+separate note. `--setup-note` can hold a short physical setup description.
+Repeat at other useful distances and include an invalid/no-echo condition
+(without a reference distance when there is no target). Do not tune the fusion
 threshold from these captures; this trial is for the sensor/firmware path.
 
 ## Reanalyzing an existing capture

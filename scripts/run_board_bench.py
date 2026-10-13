@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 
 from src.bench_analysis import analyze_board_bench_files
 from src.bench_preflight import format_preflight, run_preflight
+from src.bench_report import format_bench_report
 from src.board_live import BoardLiveRunner, format_health
 
 
@@ -103,12 +104,21 @@ def main():
     parser.add_argument("--label", default="usb-idle")
     parser.add_argument("--output-root", default="results/bench")
     parser.add_argument("--baud", type=int, default=115200)
+    parser.add_argument("--reference-distance-m", type=float)
+    parser.add_argument("--setup-note")
     args = parser.parse_args()
 
     if args.seconds <= 0:
         parser.error("--seconds must be positive")
     if not _LABEL.fullmatch(args.label):
         parser.error("--label may contain only letters, digits, '_' and '-'")
+    if (
+        args.reference_distance_m is not None
+        and args.reference_distance_m <= 0
+    ):
+        parser.error("--reference-distance-m must be positive")
+    if args.setup_note is not None and len(args.setup_note) > 500:
+        parser.error("--setup-note must be 500 characters or fewer")
 
     preflight = run_preflight(
         port=args.port,
@@ -137,6 +147,7 @@ def main():
     health_path = output / "health.jsonl"
     metadata_path = output / "metadata.json"
     summary_path = output / "bench_summary.json"
+    report_path = output / "bench_report.txt"
     integrity_path = output / "capture_integrity.json"
 
     started_wall = datetime.now(timezone.utc)
@@ -190,6 +201,8 @@ def main():
         "port_argument": args.port,
         "resolved_ports_seen": health.get("ports_seen", []),
         "baud": args.baud,
+        "reference_distance_m": args.reference_distance_m,
+        "setup_note": args.setup_note,
         "host_platform": platform.platform(),
         "python_version": platform.python_version(),
         "preflight_selected_port": preflight["selected_port"],
@@ -214,9 +227,17 @@ def main():
         "analysis": analysis,
     }
     _write_json(summary_path, summary)
+    report_path.write_text(format_bench_report(summary), encoding="utf-8")
     _write_integrity_manifest(
         integrity_path,
-        [raw_path, parsed_path, health_path, metadata_path, summary_path],
+        [
+            raw_path,
+            parsed_path,
+            health_path,
+            metadata_path,
+            summary_path,
+            report_path,
+        ],
     )
 
     print(
@@ -225,7 +246,7 @@ def main():
             analysis["sequence_gaps"],
             analysis["board_reported_drops"],
             analysis["session_count"],
-            summary_path,
+            report_path,
         ),
         flush=True,
     )
