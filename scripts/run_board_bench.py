@@ -220,7 +220,11 @@ def main():
     }
     _write_json(metadata_path, metadata)
 
-    analysis = analyze_board_bench_files(parsed_path, raw_path)
+    analysis = analyze_board_bench_files(
+        parsed_path,
+        raw_path,
+        reference_distance_m=args.reference_distance_m,
+    )
     summary = {
         "metadata": metadata,
         "runtime_health": health,
