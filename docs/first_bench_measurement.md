@@ -38,6 +38,7 @@ The analyzer reports:
 - board-reported serial drops;
 - board sessions/reboots;
 - invalid/degraded range samples;
+- when a reference distance is supplied: measured range, signed bias, absolute error and absolute percentage-error distributions;
 - PIR/radar/near activity counts;
 - rejected raw packets.
 
@@ -128,8 +129,11 @@ Use `--reference-distance-m` for the actual tape-measured distance so the
 ground-truth value is stored inside the capture metadata instead of in a
 separate note. `--setup-note` can hold a short physical setup description.
 Repeat at other useful distances and include an invalid/no-echo condition
-(without a reference distance when there is no target). Do not tune the fusion
-threshold from these captures; this trial is for the sensor/firmware path.
+(without a reference distance when there is no target). For a referenced static
+trial, only samples marked `range_valid` contribute to the accuracy statistics;
+the report shows signed error, absolute error and percentage error without
+inventing an acceptance limit. Do not tune the fusion threshold from these
+captures; this trial is for the sensor/firmware path.
 
 ## Reanalyzing an existing capture
 
@@ -137,6 +141,7 @@ threshold from these captures; this trial is for the sensor/firmware path.
 python scripts/analyze_board_bench.py \
   --parsed results/bench/<capture>/board_samples.jsonl \
   --raw results/bench/<capture>/board_raw.jsonl \
+  --reference-distance-m 1.0 \
   --output results/bench/<capture>/bench_summary_recomputed.json
 ```
 
