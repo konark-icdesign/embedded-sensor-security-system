@@ -76,7 +76,40 @@ def _bool_count(rows, field, value=True):
     return sum(bool(row.get(field, False)) is bool(value) for row in rows)
 
 
-def analyze_board_bench(parsed_rows, raw_rows=None):
+def _range_reference_summary(rows, reference_distance_m):
+    if reference_distance_m is None:
+        return None
+    reference_distance_m = float(reference_distance_m)
+    if not math.isfinite(reference_distance_m) or reference_distance_m <= 0:
+        raise ValueError("reference_distance_m must be finite and positive")
+
+    measured = []
+    for row in rows:
+        if not bool(row.get("range_valid", False)):
+            continue
+        value = row.get("range_metres")
+        if value is None:
+            continue
+        value = float(value)
+        if math.isfinite(value):
+            measured.append(value)
+
+    signed_error = [value - reference_distance_m for value in measured]
+    absolute_error = [abs(value) for value in signed_error]
+    absolute_error_percent = [
+        value / reference_distance_m * 100.0 for value in absolute_error
+    ]
+    return {
+        "reference_distance_m": reference_distance_m,
+        "valid_measurements": len(measured),
+        "measured_range_m": _stats(measured),
+        "signed_error_m": _stats(signed_error),
+        "absolute_error_m": _stats(absolute_error),
+        "absolute_error_percent": _stats(absolute_error_percent),
+    }
+
+
+def analyze_board_bench(parsed_rows, raw_rows=None, reference_distance_m=None):
     parsed_rows = list(parsed_rows)
     raw_rows = None if raw_rows is None else list(raw_rows)
 
@@ -179,6 +212,9 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
         }
 
     normal_error_abs = [abs(x) for x in transport_interval_error_ms]
+    range_reference = _range_reference_summary(
+        parsed_rows, reference_distance_m
+    )
 
     return {
         "scope": (
@@ -205,6 +241,7 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
             transport_interval_error_ms
         ),
         "normal_transport_interval_abs_error_ms": _stats(normal_error_abs),
+        "range_reference": range_reference,
         "sensor_observations": {
             "range_valid": _bool_count(parsed_rows, "range_valid", True),
             "range_invalid": _bool_count(parsed_rows, "range_valid", False),
@@ -220,7 +257,15 @@ def analyze_board_bench(parsed_rows, raw_rows=None):
     }
 
 
-def analyze_board_bench_files(parsed_path, raw_path=None):
+def analyze_board_bench_files(
+    parsed_path,
+    raw_path=None,
+    reference_distance_m=None,
+):
     parsed = load_jsonl(parsed_path)
     raw = None if raw_path is None else load_jsonl(raw_path)
-    return analyze_board_bench(parsed, raw)
+    return analyze_board_bench(
+        parsed,
+        raw,
+        reference_distance_m=reference_distance_m,
+    )
