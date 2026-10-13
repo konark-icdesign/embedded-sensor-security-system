@@ -17,9 +17,20 @@ def main():
     parser.add_argument("--parsed", required=True)
     parser.add_argument("--raw", default=None)
     parser.add_argument("--output", default=None)
+    parser.add_argument("--reference-distance-m", type=float)
     args = parser.parse_args()
 
-    result = analyze_board_bench_files(args.parsed, args.raw)
+    if (
+        args.reference_distance_m is not None
+        and args.reference_distance_m <= 0
+    ):
+        parser.error("--reference-distance-m must be positive")
+
+    result = analyze_board_bench_files(
+        args.parsed,
+        args.raw,
+        reference_distance_m=args.reference_distance_m,
+    )
     rendered = json.dumps(result, indent=2)
     print(rendered)
 
