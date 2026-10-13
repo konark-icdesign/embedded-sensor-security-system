@@ -141,9 +141,14 @@ captures; this trial is for the sensor/firmware path.
 python scripts/analyze_board_bench.py \
   --parsed results/bench/<capture>/board_samples.jsonl \
   --raw results/bench/<capture>/board_raw.jsonl \
-  --reference-distance-m 1.0 \
   --output results/bench/<capture>/bench_summary_recomputed.json
 ```
+
+When `metadata.json` beside the parsed capture contains
+`reference_distance_m`, reanalysis uses it automatically. An explicit
+`--reference-distance-m` is still supported for older captures, but a value
+that conflicts with stored metadata is rejected instead of silently changing
+the physical ground truth.
 
 ## Decision after the measurements
 
