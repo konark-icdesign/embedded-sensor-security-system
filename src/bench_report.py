@@ -50,6 +50,12 @@ def format_bench_report(summary):
         ),
         "  git_revision: {}".format(metadata.get("git_revision") or "n/a"),
         "  git_dirty: {}".format(metadata.get("git_dirty")),
+        "  firmware_identity_state: {}".format(
+            metadata.get("firmware_identity_state", "n/a")
+        ),
+        "  reported_firmware_ids: {}".format(
+            ", ".join(metadata.get("reported_firmware_ids", [])) or "none"
+        ),
         "  reference_distance_m: {}".format(
             _number(metadata.get("reference_distance_m"))
         ),
@@ -164,6 +170,9 @@ def format_bench_report(summary):
         "  timeouts: {}".format(health.get("timeouts", "n/a")),
         "  transport_rejected: {}".format(
             health.get("transport_rejected", "n/a")
+        ),
+        "  identity_requests: {}".format(
+            health.get("identity_requests", "n/a")
         ),
         "",
         "Use the JSON evidence for detailed analysis. Set acceptance limits only",
