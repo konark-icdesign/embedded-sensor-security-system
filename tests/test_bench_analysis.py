@@ -7,7 +7,8 @@ from src.bench_analysis import analyze_board_bench, load_jsonl
 
 
 def sample(session, seq, ms, arrival, captured, *, missing=0, drops=0,
-           valid=True, degraded=False, p=False, m=False, u=False):
+           valid=True, degraded=False, p=False, m=False, u=False,
+           range_m=1.0):
     return {
         "session": session,
         "sequence_unwrapped": seq,
@@ -18,6 +19,7 @@ def sample(session, seq, ms, arrival, captured, *, missing=0, drops=0,
         "missing_before": missing,
         "board_reported_drops_delta": drops,
         "range_valid": valid,
+        "range_metres": range_m,
         "degraded": degraded,
         "pir": p,
         "radar": m,
@@ -80,6 +82,50 @@ class BenchAnalysisTests(unittest.TestCase):
         self.assertEqual(
             result["mapped_capture_nonmonotonic_intervals"], 1
         )
+
+    def test_range_reference_reports_bias_and_absolute_error(self):
+        parsed = [
+            sample("uno-r4-0000", 0, 1000, 10.0, 9.99, range_m=0.98),
+            sample("uno-r4-0000", 1, 1100, 10.1, 10.09, range_m=1.01),
+            sample("uno-r4-0000", 2, 1200, 10.2, 10.19, range_m=1.03),
+            sample(
+                "uno-r4-0000", 3, 1300, 10.3, 10.29,
+                range_m=9.99, valid=False
+            ),
+        ]
+
+        result = analyze_board_bench(
+            parsed,
+            reference_distance_m=1.0,
+        )
+        accuracy = result["range_reference"]
+
+        self.assertEqual(accuracy["valid_measurements"], 3)
+        self.assertAlmostEqual(
+            accuracy["measured_range_m"]["mean"],
+            (0.98 + 1.01 + 1.03) / 3.0,
+        )
+        self.assertAlmostEqual(
+            accuracy["signed_error_m"]["mean"],
+            (0.98 + 1.01 + 1.03) / 3.0 - 1.0,
+        )
+        self.assertAlmostEqual(
+            accuracy["absolute_error_m"]["max"],
+            0.03,
+        )
+        self.assertAlmostEqual(
+            accuracy["absolute_error_percent"]["max"],
+            3.0,
+        )
+
+    def test_range_reference_requires_positive_finite_distance(self):
+        parsed = [
+            sample("uno-r4-0000", 0, 1000, 10.0, 9.99, range_m=1.0)
+        ]
+        with self.assertRaises(ValueError):
+            analyze_board_bench(parsed, reference_distance_m=0)
+        with self.assertRaises(ValueError):
+            analyze_board_bench(parsed, reference_distance_m=float("nan"))
 
     def test_empty_capture_is_reported_without_fake_numbers(self):
         result = analyze_board_bench([], [])

@@ -52,6 +52,26 @@ class BenchReportTests(unittest.TestCase):
                 "mapped_capture_nonmonotonic_intervals": 0,
                 "board_nonmonotonic_intervals": 0,
                 "negative_transport_latency_samples": 0,
+                "range_reference": {
+                    "reference_distance_m": 1.0,
+                    "valid_measurements": 595,
+                    "measured_range_m": {
+                        "count": 595, "median": 1.002, "p95": 1.010,
+                        "p99": 1.015, "max": 1.020,
+                    },
+                    "signed_error_m": {
+                        "count": 595, "median": 0.002, "mean": 0.001,
+                        "p95": 0.010, "p99": 0.015, "max": 0.020,
+                    },
+                    "absolute_error_m": {
+                        "count": 595, "median": 0.004, "p95": 0.010,
+                        "p99": 0.015, "max": 0.020,
+                    },
+                    "absolute_error_percent": {
+                        "count": 595, "median": 0.4, "p95": 1.0,
+                        "p99": 1.5, "max": 2.0,
+                    },
+                },
                 "sensor_observations": {
                     "range_valid": 595,
                     "range_invalid": 5,
@@ -79,6 +99,10 @@ class BenchReportTests(unittest.TestCase):
         self.assertIn("sequence_gaps: 2", report)
         self.assertIn("p95=8.100 ms", report)
         self.assertIn("range_invalid: 5", report)
+        self.assertIn("Range reference analysis", report)
+        self.assertIn("signed_error_mean_m: 0.001", report)
+        self.assertIn("absolute_error_percent", report)
+        self.assertIn("p95=1.000 %", report)
         self.assertIn("no PASS/FAIL threshold is applied", report)
         self.assertNotIn("PASS:", report)
         self.assertNotIn("FAIL:", report)

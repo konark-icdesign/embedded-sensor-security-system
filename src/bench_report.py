@@ -33,6 +33,7 @@ def format_bench_report(summary):
     health = summary.get("runtime_health", {})
     analysis = summary.get("analysis", {})
     sensors = analysis.get("sensor_observations", {})
+    range_reference = analysis.get("range_reference")
     raw = analysis.get("raw_transport") or {}
 
     lines = [
@@ -116,6 +117,44 @@ def format_bench_report(summary):
         "  near_active: {}".format(sensors.get("near_active", 0)),
         "  fallback_alarm: {}".format(sensors.get("fallback_alarm", 0)),
         "",
+    ]
+    if range_reference is not None:
+        lines.extend([
+            "Range reference analysis",
+            "  reference_distance_m: {}".format(
+                _number(range_reference.get("reference_distance_m"))
+            ),
+            "  valid_measurements: {}".format(
+                range_reference.get("valid_measurements", 0)
+            ),
+            "  " + _stat_line(
+                "measured_range",
+                range_reference.get("measured_range_m"),
+                "m",
+            ),
+            "  " + _stat_line(
+                "signed_error",
+                range_reference.get("signed_error_m"),
+                "m",
+            ),
+            "  signed_error_mean_m: {}".format(
+                _number(
+                    (range_reference.get("signed_error_m") or {}).get("mean")
+                )
+            ),
+            "  " + _stat_line(
+                "absolute_error",
+                range_reference.get("absolute_error_m"),
+                "m",
+            ),
+            "  " + _stat_line(
+                "absolute_error_percent",
+                range_reference.get("absolute_error_percent"),
+                "%",
+            ),
+            "",
+        ])
+    lines.extend([
         "Runtime",
         "  connect_attempts: {}".format(health.get("connect_attempts", "n/a")),
         "  connection_errors: {}".format(
@@ -129,5 +168,5 @@ def format_bench_report(summary):
         "",
         "Use the JSON evidence for detailed analysis. Set acceptance limits only",
         "after real measurements establish the expected hardware distribution.",
-    ]
+    ])
     return "\n".join(lines) + "\n"
