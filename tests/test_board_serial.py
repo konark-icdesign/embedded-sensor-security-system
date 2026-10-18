@@ -1,6 +1,11 @@
 import math
 import unittest
-from src.board_serial import BoardPacketError, BoardSerialAdapter, parse_sensor_line
+from src.board_serial import (
+    BoardPacketError,
+    BoardSerialAdapter,
+    parse_identity_line,
+    parse_sensor_line,
+)
 
 
 def packet(seq, ms, drops=0, *, p=0, m=0, u=0, metres=3.0, valid=1,
@@ -10,6 +15,24 @@ def packet(seq, ms, drops=0, *, p=0, m=0, u=0, metres=3.0, valid=1,
 
 
 class BoardSerialTests(unittest.TestCase):
+    def test_parse_firmware_identity_packet(self):
+        identity = parse_identity_line(
+            b"I,1,g8a62854b1ce2-s123456789abc\n"
+        )
+        self.assertEqual(identity.protocol_version, 1)
+        self.assertEqual(
+            identity.build_id,
+            "g8a62854b1ce2-s123456789abc",
+        )
+
+    def test_identity_rejects_unsupported_or_unsafe_values(self):
+        with self.assertRaises(BoardPacketError):
+            parse_identity_line("I,2,g123-s456")
+        with self.assertRaises(BoardPacketError):
+            parse_identity_line("I,1,bad identity")
+        with self.assertRaises(BoardPacketError):
+            parse_identity_line("I,1,a,b")
+
     def test_parse_real_wire_shape(self):
         p = parse_sensor_line(packet(7, 61234, p=1, m=1, u=1, metres=1.234))
         self.assertEqual(p.sequence, 7)
