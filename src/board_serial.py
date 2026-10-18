@@ -7,6 +7,7 @@ exercised with deterministic fault injection before a physical USB bench run.
 
 from dataclasses import dataclass, asdict
 import math
+import re
 import time
 
 UINT32 = 1 << 32
@@ -15,6 +16,15 @@ HALF32 = 1 << 31
 
 class BoardPacketError(ValueError):
     """Malformed or non-monotonic board input."""
+
+
+_ID_TOKEN = re.compile(r"^[A-Za-z0-9._+-]{1,64}$")
+
+
+@dataclass(frozen=True)
+class BoardIdentity:
+    protocol_version: int
+    build_id: str
 
 
 @dataclass(frozen=True)
@@ -91,6 +101,27 @@ def _bit(value, name):
     if value not in ("0", "1"):
         raise BoardPacketError(f"{name} must be 0 or 1")
     return value == "1"
+
+
+def parse_identity_line(line):
+    if isinstance(line, bytes):
+        try:
+            line = line.decode("ascii", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise BoardPacketError("identity line is not ASCII") from exc
+    fields = str(line).strip().split(",")
+    if len(fields) != 3 or fields[0] != "I":
+        raise BoardPacketError("expected 3-field I packet")
+    try:
+        protocol_version = int(fields[1])
+    except ValueError as exc:
+        raise BoardPacketError("identity protocol is not an integer") from exc
+    if protocol_version != 1:
+        raise BoardPacketError("unsupported identity protocol")
+    build_id = fields[2]
+    if not _ID_TOKEN.fullmatch(build_id):
+        raise BoardPacketError("invalid firmware build identity")
+    return BoardIdentity(protocol_version, build_id)
 
 
 def parse_sensor_line(line):
