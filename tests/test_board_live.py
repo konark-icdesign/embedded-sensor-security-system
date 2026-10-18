@@ -45,6 +45,7 @@ class FakeSerial:
         self.clock = clock
         self.events = list(events)
         self.closed = False
+        self.writes = []
 
     def readline(self):
         if not self.events:
@@ -55,6 +56,10 @@ class FakeSerial:
             raise payload
         return payload
 
+    def write(self, data):
+        self.writes.append(data)
+        return len(data)
+
     def close(self):
         self.closed = True
 
@@ -64,13 +69,16 @@ class Factory:
         self.clock = clock
         self.connections = [list(c) for c in connections]
         self.opens = 0
+        self.instances = []
 
     def __call__(self, port, baudrate, timeout):
         del port, baudrate, timeout
         self.opens += 1
         if not self.connections:
             raise OSError("no more connections")
-        return FakeSerial(self.clock, self.connections.pop(0))
+        instance = FakeSerial(self.clock, self.connections.pop(0))
+        self.instances.append(instance)
+        return instance
 
 
 class BoardLiveTests(unittest.TestCase):
@@ -138,6 +146,88 @@ class BoardLiveTests(unittest.TestCase):
         self.assertTrue(any(not x["accepted"] for x in raw_rows))
         self.assertTrue(parsed_rows[-1]["degraded"])
         self.assertFalse(parsed_rows[-1]["range_valid"])
+
+    def test_identity_response_is_logged_without_counting_as_sample(self):
+        clock = FakeClock(25.0)
+        factory = Factory(clock, [[
+            (.010, b"I,1,gabc123-sdef456\n"),
+            (.100, packet(0, 1000)),
+        ]])
+
+        with tempfile.TemporaryDirectory() as td:
+            raw = Path(td) / "raw.jsonl"
+            runner = BoardLiveRunner(
+                port="COM7",
+                serial_factory=factory,
+                clock=clock,
+                wall_clock=lambda: 0.0,
+                sleep=lambda dt: clock.advance(dt),
+                raw_log=raw,
+            )
+            result = runner.run(max_samples=1, max_connect_attempts=1)
+            rows = [json.loads(x) for x in raw.read_text().splitlines()]
+
+        self.assertEqual(result["samples"], 1)
+        self.assertEqual(
+            result["firmware_ids_seen"],
+            ["gabc123-sdef456"],
+        )
+        self.assertEqual(result["identity_requests"], 1)
+        self.assertEqual(factory.instances[0].writes, [b"ID\n"])
+        self.assertEqual(rows[0]["record_type"], "identity")
+        self.assertEqual(
+            rows[0]["firmware_build_id"],
+            "gabc123-sdef456",
+        )
+        self.assertTrue(rows[0]["accepted"])
+        self.assertEqual(result["transport_rejected"], 0)
+
+    def test_reconnect_can_expose_firmware_identity_change(self):
+        clock = FakeClock(27.0)
+        factory = Factory(clock, [
+            [
+                (.010, b"I,1,gold-s111\n"),
+                (.100, packet(0, 1000)),
+                (.100, OSError("unplug")),
+            ],
+            [
+                (.200, b"I,1,gnew-s222\n"),
+                (.100, packet(1, 1100)),
+            ],
+        ])
+        runner = BoardLiveRunner(
+            port="COM7",
+            serial_factory=factory,
+            clock=clock,
+            wall_clock=lambda: 0.0,
+            sleep=lambda dt: clock.advance(dt),
+            reconnect_delay=.05,
+        )
+        result = runner.run(max_samples=2, max_connect_attempts=2)
+
+        self.assertEqual(
+            result["firmware_ids_seen"],
+            ["gold-s111", "gnew-s222"],
+        )
+        self.assertEqual(result["identity_requests"], 2)
+
+    def test_malformed_identity_is_transport_rejected_not_adapter_rejected(self):
+        clock = FakeClock(28.0)
+        factory = Factory(clock, [[
+            (.010, b"I,2,bad\n"),
+            (.100, packet(0, 1000)),
+        ]])
+        runner = BoardLiveRunner(
+            port="COM7",
+            serial_factory=factory,
+            clock=clock,
+            wall_clock=lambda: 0.0,
+            sleep=lambda dt: clock.advance(dt),
+        )
+        result = runner.run(max_samples=1, max_connect_attempts=1)
+        self.assertEqual(result["transport_rejected"], 1)
+        self.assertEqual(result["adapter_rejected"], 0)
+        self.assertEqual(result["firmware_ids_seen"], [])
 
     def test_auto_reconnect_records_changed_port(self):
         clock = FakeClock(30.0)
@@ -251,6 +341,7 @@ class BoardLiveTests(unittest.TestCase):
         self.assertIn("rate=10.00 Hz", line)
         self.assertIn("latency=18.0 ms", line)
         self.assertIn("gaps=1", line)
+        self.assertIn("firmware=unknown", line)
 
     def test_health_formatter_shows_disconnected_connection_error(self):
         status = {
