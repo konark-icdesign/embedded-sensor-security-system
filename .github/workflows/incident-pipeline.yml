@@ -62,6 +62,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/bootstrap_arduino.py --core-version 1.6.0
+      - name: Stamp firmware build identity
+        run: python scripts/stamp_firmware_identity.py --revision "$GITHUB_SHA"
       - name: Compile UNO R4 WiFi target
         run: ../arduino-tools/arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi firmware/night_security
   integration:
