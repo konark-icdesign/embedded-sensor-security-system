@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import math
 from pathlib import Path
 
 from src.bench_analysis import analyze_board_bench_files
@@ -26,6 +27,23 @@ def characterize_capture(capture_dir, integrity_result):
         raise ValueError(
             "capture integrity verification failed: {}".format(capture_dir)
         )
+    verified_files = integrity_result.get("files") or {}
+    required = {
+        "metadata.json",
+        "board_samples.jsonl",
+        "board_raw.jsonl",
+    }
+    missing_verified = sorted(
+        name
+        for name in required
+        if not (verified_files.get(name) or {}).get("ok", False)
+    )
+    if missing_verified:
+        raise ValueError(
+            "required evidence is not integrity-verified: {}".format(
+                ", ".join(missing_verified)
+            )
+        )
 
     metadata = _load_json_object(
         capture_dir / "metadata.json",
@@ -42,9 +60,11 @@ def characterize_capture(capture_dir, integrity_result):
         raise ValueError(
             "reference_distance_m is not numeric: {}".format(capture_dir)
         ) from exc
-    if reference <= 0:
+    if not math.isfinite(reference) or reference <= 0:
         raise ValueError(
-            "reference_distance_m must be positive: {}".format(capture_dir)
+            "reference_distance_m must be finite and positive: {}".format(
+                capture_dir
+            )
         )
 
     analysis = analyze_board_bench_files(
