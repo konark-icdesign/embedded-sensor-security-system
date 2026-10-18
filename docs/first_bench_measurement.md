@@ -135,6 +135,29 @@ the report shows signed error, absolute error and percentage error without
 inventing an acceptance limit. Do not tune the fusion threshold from these
 captures; this trial is for the sensor/firmware path.
 
+## Comparing multiple static-distance trials
+
+After collecting at least two referenced range captures, characterize them
+together:
+
+```text
+python scripts/summarize_range_trials.py \
+  results/bench/<capture-0p5m> \
+  results/bench/<capture-1m> \
+  results/bench/<capture-2m> \
+  --output-json results/bench/range_characterization.json \
+  --output-csv results/bench/range_characterization.csv
+```
+
+Every input capture is integrity-verified before analysis. The tool requires
+`metadata.json`, `board_samples.jsonl` and `board_raw.jsonl` to be covered
+by that verified manifest, then recomputes each trial from the stored evidence
+and its stored tape reference. Trials are sorted by reference distance. JSON and
+CSV keep the per-distance valid fraction, measured mean/median, signed bias,
+absolute-error statistics, percentage-error statistics, sequence gaps, board
+drops and source revision. It deliberately does not collapse different
+distances into one headline accuracy number.
+
 ## Reanalyzing an existing capture
 
 ```text
