@@ -256,6 +256,8 @@ class BoardLiveRunner:
     def run(self, max_samples=None, max_connect_attempts=None, stop_event=None):
         """Run until interrupted, stopped, or an optional test limit is met."""
         serial_obj = None
+        connection_identity_received = False
+        identity_retry_sent = False
         try:
             while ((max_samples is None or self.accepted < max_samples)
                    and (stop_event is None or not stop_event.is_set())):
@@ -273,6 +275,8 @@ class BoardLiveRunner:
                         )
                         if self.active_port not in self.ports_seen:
                             self.ports_seen.append(self.active_port)
+                        connection_identity_received = False
+                        identity_retry_sent = False
                         if hasattr(serial_obj, "write"):
                             serial_obj.write(b"ID\n")
                             self.identity_requests += 1
@@ -343,6 +347,7 @@ class BoardLiveRunner:
                             record_type="identity",
                         )
                     else:
+                        connection_identity_received = True
                         if identity.build_id not in self.firmware_ids_seen:
                             self.firmware_ids_seen.append(identity.build_id)
                         self._record_raw(
@@ -374,6 +379,18 @@ class BoardLiveRunner:
                 self.last_arrival = arrival
                 self.last_latency = sample.arrival - sample.captured
                 self.last_sample = sample
+                if (
+                    not connection_identity_received
+                    and not identity_retry_sent
+                    and hasattr(serial_obj, "write")
+                ):
+                    try:
+                        serial_obj.write(b"ID\n")
+                    except (OSError, IOError):
+                        pass
+                    else:
+                        self.identity_requests += 1
+                    identity_retry_sent = True
                 if self.sample_callback is not None:
                     self.sample_callback(sample)
                 self._emit_status()
