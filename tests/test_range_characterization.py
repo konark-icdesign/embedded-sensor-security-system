@@ -1,9 +1,13 @@
 import csv
 import io
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from src.range_characterization import (
     build_characterization,
+    characterize_capture,
     characterization_csv,
 )
 
@@ -73,6 +77,112 @@ class RangeCharacterizationTests(unittest.TestCase):
         self.assertNotIn("accuracy", result)
         self.assertNotIn("pass", result)
         self.assertNotIn("fail", result)
+
+    def test_capture_is_recomputed_from_verified_raw_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "metadata.json").write_text(
+                json.dumps({
+                    "label": "range-static-1m",
+                    "reference_distance_m": 1.0,
+                    "setup_note": "flat target",
+                    "git_revision": "abc123",
+                    "git_dirty": False,
+                }) + "\n",
+                encoding="utf-8",
+            )
+            rows = [
+                {
+                    "session": "uno-r4-0000",
+                    "sequence_unwrapped": 0,
+                    "board_millis_unwrapped": 1000,
+                    "arrival": 10.01,
+                    "captured": 10.00,
+                    "latency_seconds": 0.01,
+                    "missing_before": 0,
+                    "board_reported_drops_delta": 0,
+                    "range_valid": True,
+                    "range_metres": 0.98,
+                    "degraded": False,
+                    "pir": False,
+                    "radar": False,
+                    "near": False,
+                    "fallback_alarm": False,
+                },
+                {
+                    "session": "uno-r4-0000",
+                    "sequence_unwrapped": 1,
+                    "board_millis_unwrapped": 1100,
+                    "arrival": 10.11,
+                    "captured": 10.10,
+                    "latency_seconds": 0.01,
+                    "missing_before": 0,
+                    "board_reported_drops_delta": 0,
+                    "range_valid": True,
+                    "range_metres": 1.02,
+                    "degraded": False,
+                    "pir": False,
+                    "radar": False,
+                    "near": False,
+                    "fallback_alarm": False,
+                },
+                {
+                    "session": "uno-r4-0000",
+                    "sequence_unwrapped": 2,
+                    "board_millis_unwrapped": 1200,
+                    "arrival": 10.21,
+                    "captured": 10.20,
+                    "latency_seconds": 0.01,
+                    "missing_before": 0,
+                    "board_reported_drops_delta": 0,
+                    "range_valid": False,
+                    "range_metres": 9.0,
+                    "degraded": True,
+                    "pir": False,
+                    "radar": False,
+                    "near": False,
+                    "fallback_alarm": False,
+                },
+            ]
+            (root / "board_samples.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            (root / "board_raw.jsonl").write_text(
+                "".join(
+                    json.dumps({"accepted": True}) + "\n"
+                    for _ in rows
+                ),
+                encoding="utf-8",
+            )
+            integrity = {
+                "ok": True,
+                "files": {
+                    "metadata.json": {"ok": True},
+                    "board_samples.jsonl": {"ok": True},
+                    "board_raw.jsonl": {"ok": True},
+                },
+            }
+
+            result = characterize_capture(root, integrity)
+
+        self.assertEqual(result["valid_measurements"], 2)
+        self.assertAlmostEqual(result["valid_fraction"], 2 / 3)
+        self.assertAlmostEqual(result["measured_mean_m"], 1.0)
+        self.assertAlmostEqual(result["signed_error_mean_m"], 0.0)
+        self.assertAlmostEqual(result["absolute_error_mean_m"], 0.02)
+        self.assertEqual(result["range_invalid"], 1)
+
+    def test_unverified_required_file_is_rejected(self):
+        integrity = {
+            "ok": True,
+            "files": {
+                "metadata.json": {"ok": True},
+                "board_samples.jsonl": {"ok": True},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "board_raw.jsonl"):
+            characterize_capture("unused", integrity)
 
     def test_csv_contains_one_row_per_trial(self):
         result = build_characterization([
