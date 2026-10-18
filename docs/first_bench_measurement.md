@@ -13,7 +13,7 @@ The bounded bench command uses the existing Rev-F transport and stores:
 - `board_raw.jsonl` — every received packet line, including rejected lines;
 - `board_samples.jsonl` — validated and timestamp-mapped board samples;
 - `health.jsonl` — periodic runner state including disconnects/timeouts/gaps;
-- `metadata.json` — requested duration, requested/resolved ports, host/Python version, Git revision/dirty state and UTC run times;
+- `metadata.json` — requested duration, requested/resolved ports, host/Python version, host Git revision/dirty state, board-reported firmware build IDs and UTC run times;
 - `bench_summary.json` — timing/drop/reboot/sensor-health measurements;
 - `bench_report.txt` — compact human-readable measurements with no invented PASS/FAIL threshold;
 - `capture_integrity.json` — byte counts and SHA-256 hashes for the raw, parsed, health, metadata, summary and report files.
@@ -65,6 +65,32 @@ not a hard failure, because the capture metadata already records
 failures. The preflight does not open the serial port or claim that hardware is
 working; the bounded capture remains the actual transport test.
 
+## Stamp firmware identity before flashing
+
+Immediately before compiling/uploading the UNO R4 firmware, generate the
+source-derived build identity:
+
+```text
+python scripts/stamp_firmware_identity.py
+```
+
+This writes ignored files inside `firmware/night_security/`:
+`build_identity.h` for the firmware compile and
+`firmware_build_identity.json` for local inspection. The ID combines the
+current Git revision with a SHA-256-derived token from the firmware source
+files. Dirty firmware edits therefore change the source token even when the Git
+revision itself has not changed.
+
+The live host sends `ID\n` on every serial connection and retries once after
+the first valid sensor packet if no response arrived. Stamped firmware replies
+with `I,1,<build-id>`; older/unmodified firmware can still stream sensor data,
+but the capture will record the firmware identity as missing. A firmware build
+compiled without the generated header reports `UNSTAMPED`.
+
+This is source/build provenance, not cryptographic attestation of the exact
+binary stored in MCU flash. It does not hash the final Arduino binary or prove
+the compiler/toolchain that produced it.
+
 ## Trial 1 — steady USB
 
 Connect the flashed UNO R4 to the HP and leave it untouched for 60 seconds.
@@ -87,9 +113,12 @@ the ordinary cadence and transport latency distribution. Check `metadata.json`
 afterward: `resolved_ports_seen` should identify the actual COM/device path used
 rather than leaving the evidence labelled only as `auto`. The metadata also
 keeps the preflight port inventory so the device list immediately before the run
-is preserved. Also confirm
-`git_revision` identifies the code used for the run and `git_dirty` is false
-for a reproducible baseline capture. `capture_integrity.json` is written last;
+is preserved. Confirm `reported_firmware_ids` contains one stamped build ID and
+`firmware_identity_state` is `reported`; `missing`, `unstamped`, or
+`changed-during-capture` are preserved explicitly rather than hidden. Also
+confirm `git_revision` identifies the host code used for the run and
+`git_dirty` is false for a reproducible baseline capture.
+`capture_integrity.json` is written last;
 if an evidence file is later edited, its stored SHA-256 will no longer match.
 
 Verify a capture before analysis, archiving or transfer:
