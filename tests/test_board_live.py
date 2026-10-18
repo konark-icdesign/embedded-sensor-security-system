@@ -182,6 +182,28 @@ class BoardLiveTests(unittest.TestCase):
         self.assertTrue(rows[0]["accepted"])
         self.assertEqual(result["transport_rejected"], 0)
 
+    def test_identity_query_retries_once_after_first_sample(self):
+        clock = FakeClock(26.0)
+        factory = Factory(clock, [[
+            (.010, packet(0, 1000)),
+            (.100, packet(1, 1100)),
+        ]])
+        runner = BoardLiveRunner(
+            port="COM7",
+            serial_factory=factory,
+            clock=clock,
+            wall_clock=lambda: 0.0,
+            sleep=lambda dt: clock.advance(dt),
+        )
+        result = runner.run(max_samples=2, max_connect_attempts=1)
+
+        self.assertEqual(result["firmware_ids_seen"], [])
+        self.assertEqual(result["identity_requests"], 2)
+        self.assertEqual(
+            factory.instances[0].writes,
+            [b"ID\n", b"ID\n"],
+        )
+
     def test_reconnect_can_expose_firmware_identity_change(self):
         clock = FakeClock(27.0)
         factory = Factory(clock, [
