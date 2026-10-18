@@ -87,7 +87,7 @@ For first bench work, USB power is acceptable if we explicitly accept that fallb
 - PIR and radar need three consecutive active samples.
 - Range uses a five-sample median plus three consecutive near results.
 - The first 60 seconds inhibit alarms while sensors settle. Rev-D keeps this because the selected EKMC1601111 specifies a 30 s maximum circuit-stability time, leaving startup margin.
-- `HB` now records transport activity only and does not suppress local fallback. `HEALTH` must come from a host pipeline that has checked fresh acquisition/fusion progress; `UNHEALTHY` explicitly drops host health. `ALARM` latches the local buzzer. `YELLOW` and `GREEN` set the host investigation indication without clearing an alarm. Commands are newline-terminated and length-bounded.
+- `HB` records transport activity only and does not suppress local fallback. `HEALTH` must come from a host pipeline that has checked fresh acquisition/fusion progress; `UNHEALTHY` explicitly drops host health. `ALARM` latches the local buzzer. `YELLOW` and `GREEN` set the host investigation indication without clearing an alarm. `ID` is a read-only provenance query; firmware answers with `I,1,<build-id>` and does not alter alarm or health state. Commands are newline-terminated and length-bounded.
 - Missing `HEALTH` for more than two seconds enables physical fallback even if transport-only `HB` messages continue.
 - One or two invalid ultrasonic samples do not erase an already-established near state; three consecutive invalid samples clear the range persistence. Every invalid reading is still reported as a range fault.
 - A sample gap above 250 ms clears accumulated persistence and the range-buffer cursor.
