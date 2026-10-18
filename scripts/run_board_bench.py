@@ -77,6 +77,17 @@ def _write_integrity_manifest(path, files):
     return manifest
 
 
+def _firmware_identity_state(health):
+    identities = list(health.get("firmware_ids_seen", []))
+    if not identities:
+        return "missing"
+    if len(identities) > 1:
+        return "changed-during-capture"
+    if identities[0] == "UNSTAMPED":
+        return "unstamped"
+    return "reported"
+
+
 def _zero_sample_diagnostic(health):
     connection_error = health.get("last_connection_error")
     if connection_error:
@@ -200,6 +211,8 @@ def main():
         "requested_seconds": args.seconds,
         "port_argument": args.port,
         "resolved_ports_seen": health.get("ports_seen", []),
+        "reported_firmware_ids": health.get("firmware_ids_seen", []),
+        "firmware_identity_state": _firmware_identity_state(health),
         "baud": args.baud,
         "reference_distance_m": args.reference_distance_m,
         "setup_note": args.setup_note,
