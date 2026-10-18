@@ -16,7 +16,11 @@ import os
 from pathlib import Path
 import time
 
-from src.board_serial import BoardPacketError, BoardSerialAdapter
+from src.board_serial import (
+    BoardPacketError,
+    BoardSerialAdapter,
+    parse_identity_line,
+)
 
 
 class PortSelectionError(RuntimeError):
@@ -143,6 +147,8 @@ class BoardLiveRunner:
         self.timeouts = 0
         self.accepted = 0
         self.transport_rejected = 0
+        self.identity_requests = 0
+        self.firmware_ids_seen = []
         self.first_accept_time = None
         self.last_accept_time = None
         self.last_arrival = None
@@ -169,7 +175,14 @@ class BoardLiveRunner:
             self.last_status_time = now
             self.status_callback(self.health_snapshot(now=now))
 
-    def _record_raw(self, raw, arrival, error=None):
+    def _record_raw(
+        self,
+        raw,
+        arrival,
+        error=None,
+        record_type="sensor",
+        extra=None,
+    ):
         if isinstance(raw, bytes):
             text = raw.decode("ascii", errors="replace").rstrip("\r\n")
         else:
@@ -180,9 +193,12 @@ class BoardLiveRunner:
             "port": self.active_port,
             "line": text,
             "accepted": error is None,
+            "record_type": record_type,
         }
         if error is not None:
             record["error"] = str(error)
+        if extra:
+            record.update(extra)
         self.raw_log.write(record)
 
     def _record_sample(self, sample):
@@ -220,6 +236,8 @@ class BoardLiveRunner:
             "timeouts": self.timeouts,
             "disconnects": self.disconnects,
             "transport_rejected": self.transport_rejected,
+            "identity_requests": self.identity_requests,
+            "firmware_ids_seen": list(self.firmware_ids_seen),
             "session": self.adapter.session,
             "sequence_gaps": self.adapter.sequence_gaps,
             "board_reported_drops": self.adapter.board_reported_drops,
@@ -255,6 +273,9 @@ class BoardLiveRunner:
                         )
                         if self.active_port not in self.ports_seen:
                             self.ports_seen.append(self.active_port)
+                        if hasattr(serial_obj, "write"):
+                            serial_obj.write(b"ID\n")
+                            self.identity_requests += 1
                         self.connected = True
                         self._emit_status(force=True)
                     except (OSError, IOError, PortSelectionError, RuntimeError) as exc:
@@ -263,6 +284,12 @@ class BoardLiveRunner:
                             type(exc).__name__, exc
                         )
                         self.connected = False
+                        if serial_obj is not None:
+                            try:
+                                serial_obj.close()
+                            except Exception:
+                                pass
+                            serial_obj = None
                         self.active_port = None
                         self._emit_status(force=True)
                         if (
@@ -296,6 +323,37 @@ class BoardLiveRunner:
 
                 if raw in (b"", ""):
                     self.timeouts += 1
+                    self._emit_status()
+                    continue
+
+                identity_candidate = (
+                    raw.startswith(b"I,")
+                    if isinstance(raw, bytes)
+                    else str(raw).startswith("I,")
+                )
+                if identity_candidate:
+                    try:
+                        identity = parse_identity_line(raw)
+                    except BoardPacketError as exc:
+                        self.transport_rejected += 1
+                        self._record_raw(
+                            raw,
+                            arrival,
+                            error=exc,
+                            record_type="identity",
+                        )
+                    else:
+                        if identity.build_id not in self.firmware_ids_seen:
+                            self.firmware_ids_seen.append(identity.build_id)
+                        self._record_raw(
+                            raw,
+                            arrival,
+                            record_type="identity",
+                            extra={
+                                "identity_protocol": identity.protocol_version,
+                                "firmware_build_id": identity.build_id,
+                            },
+                        )
                     self._emit_status()
                     continue
 
@@ -341,7 +399,7 @@ def format_health(status):
         "BOARD {state} port={port} session={session} samples={samples} "
         "rate={rate} latency={latency} gaps={gaps} board_drops={drops} "
         "reboots={reboots} rejected={rejected} P={pir} M={radar} U={near} "
-        "range_valid={range_valid} degraded={degraded}"
+        "range_valid={range_valid} degraded={degraded} firmware={firmware}"
     ).format(
         state="connected" if status["connected"] else "disconnected",
         port=status["port"] or "-",
@@ -358,6 +416,11 @@ def format_health(status):
         near=status["near"],
         range_valid=status["range_valid"],
         degraded=status["degraded"],
+        firmware=(
+            status.get("firmware_ids_seen", [])[-1]
+            if status.get("firmware_ids_seen")
+            else "unknown"
+        ),
     )
     if not status["connected"] and status.get("last_connection_error"):
         line += " connection_error={}".format(status["last_connection_error"])
