@@ -14,6 +14,10 @@ class BenchReportTests(unittest.TestCase):
                 "resolved_ports_seen": ["COM7"],
                 "git_revision": "abc123",
                 "git_dirty": False,
+                "firmware_identity_state": "reported",
+                "reported_firmware_ids": [
+                    "gabc123-sdef456"
+                ],
                 "reference_distance_m": 1.0,
                 "setup_note": "flat target, tape measured",
             },
@@ -23,6 +27,7 @@ class BenchReportTests(unittest.TestCase):
                 "disconnects": 0,
                 "timeouts": 0,
                 "transport_rejected": 0,
+                "identity_requests": 1,
             },
             "analysis": {
                 "samples": 600,
@@ -93,12 +98,15 @@ class BenchReportTests(unittest.TestCase):
 
         self.assertIn("label: usb-idle", report)
         self.assertIn("resolved_ports_seen: COM7", report)
+        self.assertIn("firmware_identity_state: reported", report)
+        self.assertIn("reported_firmware_ids: gabc123-sdef456", report)
         self.assertIn("reference_distance_m: 1.000", report)
         self.assertIn("setup_note: flat target, tape measured", report)
         self.assertIn("observed_sample_rate_hz: 10.000", report)
         self.assertIn("sequence_gaps: 2", report)
         self.assertIn("p95=8.100 ms", report)
         self.assertIn("range_invalid: 5", report)
+        self.assertIn("identity_requests: 1", report)
         self.assertIn("Range reference analysis", report)
         self.assertIn("signed_error_mean_m: 0.001", report)
         self.assertIn("absolute_error_percent", report)
