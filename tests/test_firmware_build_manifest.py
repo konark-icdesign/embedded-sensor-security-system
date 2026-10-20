@@ -63,6 +63,10 @@ class FirmwareBuildManifestTests(unittest.TestCase):
             )
 
         self.assertEqual(manifest["firmware_build_id"], "gabc-sdef")
+        self.assertEqual(
+            manifest["arduino_cli_archive_sha256"],
+            ARDUINO_CLI_LINUX64_SHA256,
+        )
         self.assertEqual(manifest["artifact_count"], 2)
         self.assertTrue(any(
             row["path"].endswith(".bin")
