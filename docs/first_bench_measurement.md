@@ -129,8 +129,10 @@ process should own the serial port.
 
 When the firmware manifest/artifact arguments are supplied, the command first
 re-hashes every compiled artifact against the build manifest. A mismatch stops
-the run before a capture directory is created. The build manifest is then copied
-into the capture and included in `capture_integrity.json`.
+the run before a capture directory is created. The build manifest and every
+flashable artifact named by it are then copied into the capture and included in
+`capture_integrity.json`. This keeps the intended flash image with the physical
+measurement even if the original build directory is later cleaned.
 
 Do not deliberately unplug USB during this first run. The purpose is to measure
 the ordinary cadence and transport latency distribution. Check `metadata.json`
