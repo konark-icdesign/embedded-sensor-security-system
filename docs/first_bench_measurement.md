@@ -96,11 +96,13 @@ sequence:
 python scripts/stamp_firmware_identity.py
 arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi --clean --output-dir results/firmware-build/local firmware/night_security
 python scripts/write_firmware_build_manifest.py --artifact-dir results/firmware-build/local --output results/firmware-build/local_manifest.json --cli-version 1.5.1 --core-version 1.6.0 --fqbn arduino:renesas_uno:unor4wifi
+arduino-cli upload -p COM7 --fqbn arduino:renesas_uno:unor4wifi --input-dir results/firmware-build/local
 ```
 
-Flash from that already-built directory rather than triggering another compile.
-Arduino CLI supports uploading prebuilt binaries from an input directory. This
-makes the intended flashed artifact hashable before upload.
+Replace `COM7` with the actual UNO R4 port. Flash from that already-built
+directory rather than triggering another compile. Arduino CLI supports uploading
+prebuilt binaries from an input directory, which keeps the intended flashed
+artifact hashable before upload.
 
 The resulting manifest still is not cryptographic attestation of MCU flash. It
 records the exact compiled files and toolchain versions used before upload, while
