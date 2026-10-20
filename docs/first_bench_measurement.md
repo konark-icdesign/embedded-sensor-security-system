@@ -87,9 +87,26 @@ with `I,1,<build-id>`; older/unmodified firmware can still stream sensor data,
 but the capture will record the firmware identity as missing. A firmware build
 compiled without the generated header reports `UNSTAMPED`.
 
-This is source/build provenance, not cryptographic attestation of the exact
-binary stored in MCU flash. It does not hash the final Arduino binary or prove
-the compiler/toolchain that produced it.
+The build workflow now also pins Arduino CLI 1.5.1 and the UNO R4 core 1.6.0,
+compiles into a dedicated artifact directory and writes SHA-256 hashes for the
+flashable binary plus ELF output when present. A local build can use the same
+sequence:
+
+```text
+python scripts/stamp_firmware_identity.py
+arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi --clean --output-dir results/firmware-build/local firmware/night_security
+python scripts/write_firmware_build_manifest.py --artifact-dir results/firmware-build/local --output results/firmware-build/local_manifest.json --cli-version 1.5.1 --core-version 1.6.0 --fqbn arduino:renesas_uno:unor4wifi
+```
+
+Flash from that already-built directory rather than triggering another compile.
+Arduino CLI supports uploading prebuilt binaries from an input directory. This
+makes the intended flashed artifact hashable before upload.
+
+The resulting manifest still is not cryptographic attestation of MCU flash. It
+records the exact compiled files and toolchain versions used before upload, while
+the runtime `ID` query proves that the running firmware reports the matching
+source-derived build ID. Readback/secure attestation of the MCU's flash contents
+is outside the current prototype.
 
 ## Trial 1 — steady USB
 
