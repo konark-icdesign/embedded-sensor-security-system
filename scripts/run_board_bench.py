@@ -199,9 +199,26 @@ def main():
     report_path = output / "bench_report.txt"
     integrity_path = output / "capture_integrity.json"
     firmware_manifest_copy = None
+    firmware_flash_copies = []
     if args.firmware_build_manifest:
         firmware_manifest_copy = output / "firmware_build_manifest.json"
         shutil.copy2(args.firmware_build_manifest, firmware_manifest_copy)
+        for index, artifact in enumerate(
+            build_verification["manifest"]["artifacts"]
+        ):
+            if not artifact.get("flash_candidate", False):
+                continue
+            relative = Path(artifact["path"])
+            source = Path(args.firmware_artifact_dir) / relative
+            destination = output / (
+                "firmware_flash_{}_{}".format(index, relative.name)
+            )
+            shutil.copy2(source, destination)
+            firmware_flash_copies.append({
+                "manifest_path": artifact["path"],
+                "capture_file": destination.name,
+                "sha256": artifact["sha256"],
+            })
 
     started_wall = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
@@ -270,6 +287,7 @@ def main():
             if firmware_manifest_copy is None
             else _sha256(firmware_manifest_copy)
         ),
+        "firmware_flash_artifacts": firmware_flash_copies,
         "baud": args.baud,
         "reference_distance_m": args.reference_distance_m,
         "setup_note": args.setup_note,
@@ -312,6 +330,8 @@ def main():
     ]
     if firmware_manifest_copy is not None:
         integrity_files.append(firmware_manifest_copy)
+    for flash_copy in firmware_flash_copies:
+        integrity_files.append(output / flash_copy["capture_file"])
     _write_integrity_manifest(
         integrity_path,
         integrity_files,
