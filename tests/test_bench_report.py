@@ -18,6 +18,10 @@ class BenchReportTests(unittest.TestCase):
                 "reported_firmware_ids": [
                     "gabc123-sdef456"
                 ],
+                "intended_firmware_build_id": "gabc123-sdef456",
+                "firmware_build_match_state": "match",
+                "firmware_artifacts_verified_before_capture": True,
+                "firmware_build_manifest_sha256": "f" * 64,
                 "reference_distance_m": 1.0,
                 "setup_note": "flat target, tape measured",
             },
@@ -100,6 +104,16 @@ class BenchReportTests(unittest.TestCase):
         self.assertIn("resolved_ports_seen: COM7", report)
         self.assertIn("firmware_identity_state: reported", report)
         self.assertIn("reported_firmware_ids: gabc123-sdef456", report)
+        self.assertIn(
+            "intended_firmware_build_id: gabc123-sdef456",
+            report,
+        )
+        self.assertIn("firmware_build_match_state: match", report)
+        self.assertIn(
+            "firmware_artifacts_verified_before_capture: True",
+            report,
+        )
+        self.assertIn("firmware_build_manifest_sha256:", report)
         self.assertIn("reference_distance_m: 1.000", report)
         self.assertIn("setup_note: flat target, tape measured", report)
         self.assertIn("observed_sample_rate_hz: 10.000", report)
