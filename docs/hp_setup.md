@@ -9,7 +9,8 @@ The intended PC is an HP t640 with 8 GB RAM, an NVMe SSD and Windows 10 22H2. No
 | Python 3.12, NumPy, SciPy and Matplotlib | Run the current simulation and plots |
 | sounddevice + PortAudio | Optional Rev-I live microphone capture |
 | OpenCV | Optional Rev-I webcam capture |
-| Arduino IDE 2 | Compile and later upload the board sketch |
+| Arduino IDE 2 | Optional interactive board work |
+| Arduino CLI 1.5.1 | Reproduce the pinned command-line firmware build |
 | Arduino UNO R4 Boards core 1.6.0 | Reproduce the recorded target build |
 | MATLAB, with a suitable licence | Reproduce the reference already verified on GitHub; HP performance is unmeasured |
 | GCC and Make | Run the native C++ checks; optional for the first Python run |
@@ -25,7 +26,7 @@ MathWorks' R2026a requirements list 8 GB RAM minimum, 16 GB recommended and supp
 2. Create the virtual environment and install the README dependencies. For live microphone/webcam capture install `requirements-live.txt` instead of only `requirements.txt`. If necessary, use `py -3.12` instead of `python` when creating it.
 3. Download the audio subset, run one seed and inspect `results/scenario_results.csv`.
 4. For MATLAB, generate the fixtures with Python first, then run `addpath('matlab'); run_full_simulation`.
-5. In Arduino IDE, install Arduino UNO R4 Boards, select UNO R4 WiFi and compile the sketch. Wiring and upload checks are in `hardware.md`.
+5. For provenance-sensitive bench firmware, use Arduino CLI 1.5.1 with UNO R4 Boards core 1.6.0 rather than an implicit IDE rebuild. Stamp the firmware identity, compile with `--output-dir results/firmware-build/local`, write `local_manifest.json`, then upload from that prebuilt directory. The complete commands are in `first_bench_measurement.md`. Arduino IDE remains useful for interactive development.
 
 Close Serial Monitor before another program opens the same COM port.
 

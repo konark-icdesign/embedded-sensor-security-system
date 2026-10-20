@@ -23,3 +23,4 @@ results/live-room/
 results/bench/
 firmware/night_security/build_identity.h
 firmware/night_security/firmware_build_identity.json
+results/firmware-build/
