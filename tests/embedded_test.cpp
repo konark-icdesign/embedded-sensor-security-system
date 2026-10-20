@@ -93,6 +93,17 @@ int main() {
     {
         Core c;
         security::LineBuffer b;
+        assert(!c.takeIdentityRequest());
+        for (char x : std::string("ID\n")) {
+            b.feed(x, c, 42);
+        }
+        assert(c.takeIdentityRequest());
+        assert(!c.takeIdentityRequest());
+        puts("PASS firmware identity request is bounded and one-shot");
+    }
+    {
+        Core c;
+        security::LineBuffer b;
         std::string bad(300, 'x');
         bad += "ALARM\n";
         for (char x : bad) {

@@ -23,6 +23,7 @@ class Core {
     bool transport_seen_ = false, health_seen_ = false, sampled_ = false, latch_ = false;
     bool investigating_ = false;
     bool fallback_latch_ = false;
+    bool identity_requested_ = false;
 
   public:
     // HB only proves that a transport/process is alive. It must not suppress
@@ -47,6 +48,12 @@ class Core {
 
     void serverAlarm() { latch_ = true; }
 
+    bool takeIdentityRequest() {
+        const bool requested = identity_requested_;
+        identity_requested_ = false;
+        return requested;
+    }
+
     void reset() {
         latch_ = false;
         fallback_latch_ = false;
@@ -68,6 +75,10 @@ class Core {
         }
         if (strcmp(line, "ALARM") == 0) {
             serverAlarm();
+            return true;
+        }
+        if (strcmp(line, "ID") == 0) {
+            identity_requested_ = true;
             return true;
         }
         if (strcmp(line, "YELLOW") == 0 || strcmp(line, "GREEN") == 0) {

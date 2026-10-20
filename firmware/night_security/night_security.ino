@@ -4,6 +4,14 @@
 // USB serial avoids putting Wi-Fi between sensors and HP.
 #include <Arduino.h>
 #include "core.h"
+#if defined(__has_include)
+#if __has_include("build_identity.h")
+#include "build_identity.h"
+#endif
+#endif
+#ifndef SECURITY_FIRMWARE_BUILD_ID
+#define SECURITY_FIRMWARE_BUILD_ID "UNSTAMPED"
+#endif
 #if defined(ARDUINO_ARCH_RENESAS_UNO)
 #include <WDT.h>
 #endif
@@ -14,6 +22,11 @@ constexpr uint8_t GREEN_PIN = 6, YELLOW_PIN = 7, RED_PIN = 8, BUZZER_PIN = 9, RE
 security::Core controller;
 security::LineBuffer commandLine;
 uint32_t startMs = 0, lastSample = 0, sequence = 0, serialDrops = 0;
+
+void publishIdentity() {
+    Serial.print("I,1,");
+    Serial.println(SECURITY_FIRMWARE_BUILD_ID);
+}
 
 float readDistance() {
     digitalWrite(TRIG_PIN, LOW);
@@ -30,6 +43,9 @@ void processServerMessage(uint32_t now) {
     // Bound work per loop; malformed serial traffic must not starve sampling.
     for (uint8_t n = 0; n < 64U && Serial.available() > 0; ++n) {
         commandLine.feed(static_cast<char>(Serial.read()), controller, now);
+        if (controller.takeIdentityRequest()) {
+            publishIdentity();
+        }
     }
 }
 void updateAlarmOutputs(const security::Output &out, bool armed) {

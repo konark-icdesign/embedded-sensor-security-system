@@ -20,4 +20,6 @@ c-parity.json
 results/live/
 
 results/live-room/
-results/bench/\n
+results/bench/
+firmware/night_security/build_identity.h
+firmware/night_security/firmware_build_identity.json
