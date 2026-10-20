@@ -4,6 +4,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from src.arduino_toolchain import (
+    ARDUINO_CLI_LINUX64_SHA256,
+    ARDUINO_CLI_VERSION,
+)
+
 FLASH_EXTENSIONS = {".bin", ".hex", ".uf2"}
 BUILD_EXTENSIONS = FLASH_EXTENSIONS | {".elf"}
 
@@ -67,8 +72,8 @@ def build_manifest(
         "firmware_git_dirty": identity.get("git_dirty"),
         "arduino_cli_version": str(cli_version),
         "arduino_cli_archive_sha256": (
-            "28a8e119c498a25607821c36cb2dc49e8463941b261a0d99091baa7bc692dd2b"
-            if str(cli_version) == "1.5.1"
+            ARDUINO_CLI_LINUX64_SHA256
+            if str(cli_version) == ARDUINO_CLI_VERSION
             else None
         ),
         "arduino_core_version": str(core_version),
