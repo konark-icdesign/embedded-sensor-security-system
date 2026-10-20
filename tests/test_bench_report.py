@@ -22,6 +22,13 @@ class BenchReportTests(unittest.TestCase):
                 "firmware_build_match_state": "match",
                 "firmware_artifacts_verified_before_capture": True,
                 "firmware_build_manifest_sha256": "f" * 64,
+                "firmware_flash_artifacts": [{
+                    "manifest_path": "night_security.ino.bin",
+                    "capture_file": (
+                        "firmware_flash_0_night_security.ino.bin"
+                    ),
+                    "sha256": "a" * 64,
+                }],
                 "reference_distance_m": 1.0,
                 "setup_note": "flat target, tape measured",
             },
@@ -114,6 +121,11 @@ class BenchReportTests(unittest.TestCase):
             report,
         )
         self.assertIn("firmware_build_manifest_sha256:", report)
+        self.assertIn(
+            "firmware_flash_artifacts: "
+            "firmware_flash_0_night_security.ino.bin",
+            report,
+        )
         self.assertIn("reference_distance_m: 1.000", report)
         self.assertIn("setup_note: flat target, tape measured", report)
         self.assertIn("observed_sample_rate_hz: 10.000", report)
