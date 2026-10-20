@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -20,6 +21,7 @@ from src.bench_analysis import analyze_board_bench_files
 from src.bench_preflight import format_preflight, run_preflight
 from src.bench_report import format_bench_report
 from src.board_live import BoardLiveRunner, format_health
+from src.firmware_build_manifest import verify_manifest_artifacts
 
 
 _LABEL = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -88,6 +90,19 @@ def _firmware_identity_state(health):
     return "reported"
 
 
+def _firmware_build_match_state(expected_build_id, reported_ids):
+    if expected_build_id is None:
+        return "not-requested"
+    reported_ids = list(reported_ids or [])
+    if not reported_ids:
+        return "board-id-missing"
+    if len(reported_ids) != 1:
+        return "multiple-board-ids"
+    if reported_ids[0] == expected_build_id:
+        return "match"
+    return "mismatch"
+
+
 def _zero_sample_diagnostic(health):
     connection_error = health.get("last_connection_error")
     if connection_error:
@@ -117,6 +132,8 @@ def main():
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--reference-distance-m", type=float)
     parser.add_argument("--setup-note")
+    parser.add_argument("--firmware-build-manifest")
+    parser.add_argument("--firmware-artifact-dir")
     args = parser.parse_args()
 
     if args.seconds <= 0:
@@ -130,6 +147,27 @@ def main():
         parser.error("--reference-distance-m must be positive")
     if args.setup_note is not None and len(args.setup_note) > 500:
         parser.error("--setup-note must be 500 characters or fewer")
+    if bool(args.firmware_build_manifest) != bool(args.firmware_artifact_dir):
+        parser.error(
+            "--firmware-build-manifest and --firmware-artifact-dir "
+            "must be supplied together"
+        )
+
+    build_verification = None
+    intended_build_id = None
+    if args.firmware_build_manifest:
+        try:
+            build_verification = verify_manifest_artifacts(
+                args.firmware_build_manifest,
+                args.firmware_artifact_dir,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        if not build_verification["ok"]:
+            parser.error(
+                "compiled firmware artifacts do not match the build manifest"
+            )
+        intended_build_id = build_verification["firmware_build_id"]
 
     preflight = run_preflight(
         port=args.port,
@@ -160,6 +198,10 @@ def main():
     summary_path = output / "bench_summary.json"
     report_path = output / "bench_report.txt"
     integrity_path = output / "capture_integrity.json"
+    firmware_manifest_copy = None
+    if args.firmware_build_manifest:
+        firmware_manifest_copy = output / "firmware_build_manifest.json"
+        shutil.copy2(args.firmware_build_manifest, firmware_manifest_copy)
 
     started_wall = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
@@ -206,13 +248,28 @@ def main():
 
     ended_wall = datetime.now(timezone.utc)
     source_state = _source_state()
+    reported_firmware_ids = health.get("firmware_ids_seen", [])
+    firmware_build_match_state = _firmware_build_match_state(
+        intended_build_id,
+        reported_firmware_ids,
+    )
     metadata = {
         "label": args.label,
         "requested_seconds": args.seconds,
         "port_argument": args.port,
         "resolved_ports_seen": health.get("ports_seen", []),
-        "reported_firmware_ids": health.get("firmware_ids_seen", []),
+        "reported_firmware_ids": reported_firmware_ids,
         "firmware_identity_state": _firmware_identity_state(health),
+        "intended_firmware_build_id": intended_build_id,
+        "firmware_build_match_state": firmware_build_match_state,
+        "firmware_artifacts_verified_before_capture": (
+            None if build_verification is None else True
+        ),
+        "firmware_build_manifest_sha256": (
+            None
+            if firmware_manifest_copy is None
+            else _sha256(firmware_manifest_copy)
+        ),
         "baud": args.baud,
         "reference_distance_m": args.reference_distance_m,
         "setup_note": args.setup_note,
@@ -245,16 +302,19 @@ def main():
     }
     _write_json(summary_path, summary)
     report_path.write_text(format_bench_report(summary), encoding="utf-8")
+    integrity_files = [
+        raw_path,
+        parsed_path,
+        health_path,
+        metadata_path,
+        summary_path,
+        report_path,
+    ]
+    if firmware_manifest_copy is not None:
+        integrity_files.append(firmware_manifest_copy)
     _write_integrity_manifest(
         integrity_path,
-        [
-            raw_path,
-            parsed_path,
-            health_path,
-            metadata_path,
-            summary_path,
-            report_path,
-        ],
+        integrity_files,
     )
 
     print(
@@ -277,6 +337,22 @@ def main():
             flush=True,
         )
         raise SystemExit(2)
+
+    if (
+        intended_build_id is not None
+        and firmware_build_match_state != "match"
+    ):
+        print(
+            "ERROR firmware build provenance mismatch: expected={} "
+            "reported={} state={}".format(
+                intended_build_id,
+                reported_firmware_ids,
+                firmware_build_match_state,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(3)
 
 
 if __name__ == "__main__":
