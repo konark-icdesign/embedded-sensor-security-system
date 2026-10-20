@@ -66,6 +66,11 @@ def build_manifest(
         "firmware_git_revision": identity.get("git_revision"),
         "firmware_git_dirty": identity.get("git_dirty"),
         "arduino_cli_version": str(cli_version),
+        "arduino_cli_archive_sha256": (
+            "28a8e119c498a25607821c36cb2dc49e8463941b261a0d99091baa7bc692dd2b"
+            if str(cli_version) == "1.5.1"
+            else None
+        ),
         "arduino_core_version": str(core_version),
         "fqbn": str(fqbn),
         "artifact_count": len(artifacts),
