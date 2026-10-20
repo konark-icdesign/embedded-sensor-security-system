@@ -12,6 +12,7 @@ from src.arduino_toolchain import (
 from src.firmware_build_manifest import (
     build_manifest,
     collect_artifacts,
+    verify_manifest_artifacts,
 )
 
 
@@ -82,6 +83,114 @@ class FirmwareBuildManifestTests(unittest.TestCase):
             len(row["sha256"]) == 64
             for row in manifest["artifacts"]
         ))
+
+    def test_verifier_accepts_untampered_artifacts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            binary = artifacts / "night_security.ino.bin"
+            binary.write_bytes(b"binary")
+            identity = root / "identity.json"
+            identity.write_text(
+                json.dumps({
+                    "build_id": "gabc-sdef",
+                    "source_sha256": "a" * 64,
+                    "git_revision": "abc",
+                    "git_dirty": False,
+                }) + "\n",
+                encoding="utf-8",
+            )
+            manifest = build_manifest(
+                artifacts,
+                identity,
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+            )
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(manifest) + "\n",
+                encoding="utf-8",
+            )
+
+            verified = verify_manifest_artifacts(
+                manifest_path,
+                artifacts,
+            )
+
+        self.assertTrue(verified["ok"])
+        self.assertEqual(verified["firmware_build_id"], "gabc-sdef")
+        self.assertTrue(verified["artifacts"][0]["sha256_ok"])
+
+    def test_verifier_detects_same_size_artifact_tamper(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            binary = artifacts / "night_security.ino.bin"
+            binary.write_bytes(b"abc")
+            identity = root / "identity.json"
+            identity.write_text(
+                json.dumps({
+                    "build_id": "gabc-sdef",
+                    "source_sha256": "a" * 64,
+                    "git_revision": "abc",
+                    "git_dirty": False,
+                }) + "\n",
+                encoding="utf-8",
+            )
+            manifest = build_manifest(
+                artifacts,
+                identity,
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+            )
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(manifest) + "\n",
+                encoding="utf-8",
+            )
+            binary.write_bytes(b"abd")
+
+            verified = verify_manifest_artifacts(
+                manifest_path,
+                artifacts,
+            )
+
+        self.assertFalse(verified["ok"])
+        self.assertTrue(verified["artifacts"][0]["bytes_ok"])
+        self.assertFalse(verified["artifacts"][0]["sha256_ok"])
+
+    def test_verifier_rejects_manifest_path_escape(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            manifest_path = root / "manifest.json"
+            manifest_path.write_text(
+                json.dumps({
+                    "schema": 1,
+                    "firmware_build_id": "gabc-sdef",
+                    "artifacts": [{
+                        "path": "../outside.bin",
+                        "bytes": 1,
+                        "sha256": "0" * 64,
+                    }],
+                }) + "\n",
+                encoding="utf-8",
+            )
+            verified = verify_manifest_artifacts(
+                manifest_path,
+                artifacts,
+            )
+
+        self.assertFalse(verified["ok"])
+        self.assertEqual(
+            verified["artifacts"][0]["error"],
+            "unsafe artifact path",
+        )
 
     def test_manifest_requires_flashable_output(self):
         with tempfile.TemporaryDirectory() as td:
