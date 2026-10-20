@@ -68,6 +68,13 @@ def format_bench_report(summary):
         "  firmware_build_manifest_sha256: {}".format(
             metadata.get("firmware_build_manifest_sha256") or "none"
         ),
+        "  firmware_flash_artifacts: {}".format(
+            ", ".join(
+                item.get("capture_file", "")
+                for item in metadata.get("firmware_flash_artifacts", [])
+                if item.get("capture_file")
+            ) or "none"
+        ),
         "  reference_distance_m: {}".format(
             _number(metadata.get("reference_distance_m"))
         ),
