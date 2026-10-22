@@ -79,6 +79,7 @@ jobs:
             --artifact-dir results/firmware-build/artifacts \
             --output results/firmware-build/firmware_build_manifest.json \
             --cli-version 1.5.1 \
+            --cli-asset linux64 \
             --core-version 1.6.0 \
             --fqbn arduino:renesas_uno:unor4wifi
       - uses: actions/upload-artifact@v4
@@ -88,6 +89,36 @@ jobs:
             results/firmware-build/
             firmware/night_security/firmware_build_identity.json
           retention-days: 14
+  arduino-windows-target:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Windows Arduino toolchain
+        run: python scripts/bootstrap_arduino.py --cli-asset windows64 --cli-version 1.5.1 --core-version 1.6.0
+      - name: Stamp firmware build identity
+        run: python scripts/stamp_firmware_identity.py --revision "$GITHUB_SHA"
+      - name: Compile UNO R4 WiFi target on Windows
+        run: |
+          mkdir -p results/firmware-build/windows-artifacts
+          ../arduino-tools/arduino-cli.exe compile \
+            --fqbn arduino:renesas_uno:unor4wifi \
+            --clean \
+            --output-dir results/firmware-build/windows-artifacts \
+            firmware/night_security
+      - name: Record Windows compiled firmware artifact hashes
+        run: |
+          python scripts/write_firmware_build_manifest.py \
+            --artifact-dir results/firmware-build/windows-artifacts \
+            --output results/firmware-build/windows_build_manifest.json \
+            --cli-version 1.5.1 \
+            --cli-asset windows64 \
+            --core-version 1.6.0 \
+            --fqbn arduino:renesas_uno:unor4wifi
+
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20

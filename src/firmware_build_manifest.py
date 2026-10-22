@@ -4,10 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from src.arduino_toolchain import (
-    ARDUINO_CLI_LINUX64_SHA256,
-    ARDUINO_CLI_VERSION,
-)
+from src.arduino_toolchain import cli_asset
 
 FLASH_EXTENSIONS = {".bin", ".hex", ".uf2"}
 BUILD_EXTENSIONS = FLASH_EXTENSIONS | {".elf"}
@@ -148,9 +145,17 @@ def build_manifest(
     cli_version,
     core_version,
     fqbn,
+    cli_asset_id=None,
 ):
     identity = _load_identity(identity_path)
     artifacts = collect_artifacts(artifact_dir)
+    try:
+        selected_cli_asset = cli_asset(cli_asset_id, cli_version)
+    except RuntimeError:
+        selected_cli_asset = {
+            "asset_id": cli_asset_id,
+            "sha256": None,
+        }
     return {
         "schema": 1,
         "firmware_build_id": identity["build_id"],
@@ -158,11 +163,8 @@ def build_manifest(
         "firmware_git_revision": identity.get("git_revision"),
         "firmware_git_dirty": identity.get("git_dirty"),
         "arduino_cli_version": str(cli_version),
-        "arduino_cli_archive_sha256": (
-            ARDUINO_CLI_LINUX64_SHA256
-            if str(cli_version) == ARDUINO_CLI_VERSION
-            else None
-        ),
+        "arduino_cli_asset": selected_cli_asset.get("asset_id"),
+        "arduino_cli_archive_sha256": selected_cli_asset.get("sha256"),
         "arduino_core_version": str(core_version),
         "fqbn": str(fqbn),
         "artifact_count": len(artifacts),

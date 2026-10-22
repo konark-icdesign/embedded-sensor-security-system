@@ -26,6 +26,11 @@ def main():
     )
     parser.add_argument("--output", required=True)
     parser.add_argument("--cli-version", default=ARDUINO_CLI_VERSION)
+    parser.add_argument(
+        "--cli-asset",
+        choices=("linux64", "windows64"),
+        help="override automatic host-platform detection",
+    )
     parser.add_argument("--core-version", default=ARDUINO_CORE_VERSION)
     parser.add_argument("--fqbn", default=UNO_R4_WIFI_FQBN)
     args = parser.parse_args()
@@ -37,6 +42,7 @@ def main():
             cli_version=args.cli_version,
             core_version=args.core_version,
             fqbn=args.fqbn,
+            cli_asset_id=args.cli_asset,
         )
     except ValueError as exc:
         parser.error(str(exc))

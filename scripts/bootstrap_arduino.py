@@ -6,18 +6,61 @@ import subprocess
 import sys
 import tarfile
 import urllib.request
+import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.arduino_toolchain import (
-    ARDUINO_CLI_LINUX64_SHA256,
     ARDUINO_CLI_VERSION,
     ARDUINO_CORE_VERSION,
-    cli_linux64_url,
+    cli_asset,
     verify_sha256,
 )
+
+
+def _extract_cli(archive, root, asset):
+    executable = asset["executable"]
+    if asset["archive_type"] == "tar":
+        with tarfile.open(archive) as handle:
+            member = next(
+                (
+                    item
+                    for item in handle.getmembers()
+                    if pathlib.PurePosixPath(item.name).name == executable
+                ),
+                None,
+            )
+            if member is None:
+                raise RuntimeError(
+                    "{} not found in {}".format(executable, archive)
+                )
+            member.name = executable
+            handle.extract(member, root, filter="data")
+    elif asset["archive_type"] == "zip":
+        with zipfile.ZipFile(archive) as handle:
+            member = next(
+                (
+                    name
+                    for name in handle.namelist()
+                    if pathlib.PurePosixPath(name).name == executable
+                ),
+                None,
+            )
+            if member is None:
+                raise RuntimeError(
+                    "{} not found in {}".format(executable, archive)
+                )
+            target = root / executable
+            with handle.open(member) as source:
+                target.write_bytes(source.read())
+    else:
+        raise RuntimeError(
+            "unsupported archive type: {}".format(
+                asset["archive_type"]
+            )
+        )
 
 
 def main():
@@ -25,34 +68,35 @@ def main():
     parser.add_argument("--core-version", default=ARDUINO_CORE_VERSION)
     parser.add_argument("--cli-version", default=ARDUINO_CLI_VERSION)
     parser.add_argument("--cli-sha256")
+    parser.add_argument(
+        "--cli-asset",
+        choices=("linux64", "windows64"),
+        help="override automatic host-platform detection",
+    )
     args = parser.parse_args()
 
-    expected_sha256 = args.cli_sha256
+    try:
+        asset = cli_asset(args.cli_asset, args.cli_version)
+    except RuntimeError as exc:
+        parser.error(str(exc))
+
+    expected_sha256 = args.cli_sha256 or asset["sha256"]
     if expected_sha256 is None:
-        if args.cli_version != ARDUINO_CLI_VERSION:
-            parser.error(
-                "--cli-sha256 is required for an unrecognized CLI version"
-            )
-        expected_sha256 = ARDUINO_CLI_LINUX64_SHA256
+        parser.error(
+            "--cli-sha256 is required for an unrecognized CLI version"
+        )
 
     root = pathlib.Path(__file__).resolve().parents[2] / "arduino-tools"
     root.mkdir(exist_ok=True)
-    archive = root / (
-        "arduino-cli_{}_Linux_64bit.tar.gz".format(args.cli_version)
-    )
-    url = cli_linux64_url(args.cli_version)
+    archive = root / asset["archive_name"]
 
-    with urllib.request.urlopen(url, timeout=45) as response:
+    with urllib.request.urlopen(asset["url"], timeout=45) as response:
         archive.write_bytes(response.read())
 
     verify_sha256(archive, expected_sha256)
+    _extract_cli(archive, root, asset)
 
-    with tarfile.open(archive) as tar:
-        for member in tar.getmembers():
-            if member.name == "arduino-cli":
-                tar.extract(member, root, filter="data")
-
-    cli = str(root / "arduino-cli")
+    cli = str(root / asset["executable"])
     commands = [
         [cli, "version"],
         [cli, "core", "update-index"],
@@ -73,6 +117,15 @@ def main():
         print(result.stdout, result.stderr, flush=True)
         if result.returncode:
             raise SystemExit(result.returncode)
+
+    print(
+        "ARDUINO_BOOTSTRAP asset={} cli={} core={}".format(
+            asset["asset_id"],
+            args.cli_version,
+            args.core_version,
+        ),
+        flush=True,
+    )
 
 
 if __name__ == "__main__":
