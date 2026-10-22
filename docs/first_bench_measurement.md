@@ -89,15 +89,28 @@ compiled without the generated header reports `UNSTAMPED`.
 
 The build workflow now also pins Arduino CLI 1.5.1 and the UNO R4 core 1.6.0,
 compiles into a dedicated artifact directory and writes SHA-256 hashes for the
-flashable binary plus ELF output when present. A local build can use the same
-sequence:
+flashable binary plus ELF output when present.
+
+On the Windows HP t640, bootstrap the pinned tool first:
+
+```text
+python scripts/bootstrap_arduino.py
+```
+
+The bootstrap selects the official Windows x64 ZIP automatically, verifies its
+published SHA-256 before extraction, and installs UNO R4 core 1.6.0. From the
+repository directory, use the extracted executable directly:
 
 ```text
 python scripts/stamp_firmware_identity.py
-arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi --clean --output-dir results/firmware-build/local firmware/night_security
-python scripts/write_firmware_build_manifest.py --artifact-dir results/firmware-build/local --output results/firmware-build/local_manifest.json --cli-version 1.5.1 --core-version 1.6.0 --fqbn arduino:renesas_uno:unor4wifi
-arduino-cli upload -p COM7 --fqbn arduino:renesas_uno:unor4wifi --input-dir results/firmware-build/local
+..\arduino-tools\arduino-cli.exe compile --fqbn arduino:renesas_uno:unor4wifi --clean --output-dir results/firmware-build/local firmware/night_security
+python scripts/write_firmware_build_manifest.py --artifact-dir results/firmware-build/local --output results/firmware-build/local_manifest.json --cli-version 1.5.1 --cli-asset windows64 --core-version 1.6.0 --fqbn arduino:renesas_uno:unor4wifi
+..\arduino-tools\arduino-cli.exe upload -p COM7 --fqbn arduino:renesas_uno:unor4wifi --input-dir results/firmware-build/local
 ```
+
+For Linux, the same bootstrap selects the verified Linux x64 tarball; use
+`../arduino-tools/arduino-cli` and `--cli-asset linux64` when writing the
+manifest.
 
 Replace `COM7` with the actual UNO R4 port. Flash from that already-built
 directory rather than triggering another compile. Arduino CLI supports uploading
