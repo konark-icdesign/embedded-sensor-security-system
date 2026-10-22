@@ -119,6 +119,38 @@ class FirmwareBuildManifestTests(unittest.TestCase):
             for row in manifest["artifacts"]
         ))
 
+    def test_windows_manifest_records_windows_cli_asset(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "night_security.ino.bin").write_bytes(b"binary")
+            identity = root / "identity.json"
+            identity.write_text(
+                json.dumps({
+                    "build_id": "gabc-sdef",
+                    "source_sha256": "a" * 64,
+                    "git_revision": "abc",
+                    "git_dirty": False,
+                }) + "\n",
+                encoding="utf-8",
+            )
+
+            manifest = build_manifest(
+                artifacts,
+                identity,
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+                cli_asset_id="windows64",
+            )
+
+        self.assertEqual(manifest["arduino_cli_asset"], "windows64")
+        self.assertEqual(
+            manifest["arduino_cli_archive_sha256"],
+            ARDUINO_CLI_WINDOWS64_SHA256,
+        )
+
     def test_verifier_accepts_untampered_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
