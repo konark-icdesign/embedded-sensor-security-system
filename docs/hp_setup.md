@@ -26,7 +26,7 @@ MathWorks' R2026a requirements list 8 GB RAM minimum, 16 GB recommended and supp
 2. Create the virtual environment and install the README dependencies. For live microphone/webcam capture install `requirements-live.txt` instead of only `requirements.txt`. If necessary, use `py -3.12` instead of `python` when creating it.
 3. Download the audio subset, run one seed and inspect `results/scenario_results.csv`.
 4. For MATLAB, generate the fixtures with Python first, then run `addpath('matlab'); run_full_simulation`.
-5. For provenance-sensitive bench firmware, use Arduino CLI 1.5.1 with UNO R4 Boards core 1.6.0 rather than an implicit IDE rebuild. Stamp the firmware identity, compile with `--output-dir results/firmware-build/local`, write `local_manifest.json`, then upload from that prebuilt directory. The complete commands are in `first_bench_measurement.md`. Arduino IDE remains useful for interactive development.
+5. Install the pinned Windows x64 Arduino CLI and UNO R4 core with `python scripts/bootstrap_arduino.py`. The script auto-detects Windows x64, verifies the official Arduino CLI 1.5.1 ZIP SHA-256, extracts `..\\arduino-tools\\arduino-cli.exe` and installs UNO R4 Boards core 1.6.0. For provenance-sensitive bench firmware, use that executable rather than an implicit IDE rebuild. Stamp the firmware identity, compile with `--output-dir results/firmware-build/local`, write `local_manifest.json`, then upload from that prebuilt directory. The complete commands are in `first_bench_measurement.md`. Arduino IDE remains useful for interactive development.
 
 Close Serial Monitor before another program opens the same COM port.
 
