@@ -54,6 +54,93 @@ def collect_artifacts(artifact_dir):
     return rows
 
 
+def load_build_manifest(path):
+    try:
+        value = json.loads(Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError("firmware build manifest not found") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError("firmware build manifest is not valid JSON") from exc
+    if not isinstance(value, dict):
+        raise ValueError("firmware build manifest is not a JSON object")
+    if value.get("schema") != 1 or not value.get("firmware_build_id"):
+        raise ValueError("firmware build manifest is incomplete")
+    artifacts = value.get("artifacts")
+    if not isinstance(artifacts, list) or not artifacts:
+        raise ValueError("firmware build manifest has no artifacts")
+    return value
+
+
+def verify_manifest_artifacts(manifest_path, artifact_dir):
+    manifest = load_build_manifest(manifest_path)
+    artifact_dir = Path(artifact_dir)
+    results = []
+    overall_ok = True
+
+    for expected in manifest["artifacts"]:
+        if not isinstance(expected, dict):
+            results.append({"ok": False, "error": "invalid artifact record"})
+            overall_ok = False
+            continue
+        name = expected.get("path")
+        if not isinstance(name, str):
+            results.append({"ok": False, "error": "missing artifact path"})
+            overall_ok = False
+            continue
+        relative = Path(name)
+        if relative.is_absolute() or ".." in relative.parts:
+            results.append({
+                "path": name,
+                "ok": False,
+                "error": "unsafe artifact path",
+            })
+            overall_ok = False
+            continue
+
+        target = artifact_dir / relative
+        if not target.is_file():
+            results.append({
+                "path": name,
+                "ok": False,
+                "error": "artifact missing",
+            })
+            overall_ok = False
+            continue
+
+        actual_bytes = target.stat().st_size
+        actual_sha256 = _sha256(target)
+        expected_bytes = expected.get("bytes")
+        expected_sha256 = expected.get("sha256")
+        size_ok = (
+            isinstance(expected_bytes, int)
+            and actual_bytes == expected_bytes
+        )
+        hash_ok = (
+            isinstance(expected_sha256, str)
+            and actual_sha256 == expected_sha256.lower()
+        )
+        row_ok = size_ok and hash_ok
+        results.append({
+            "path": name,
+            "ok": row_ok,
+            "bytes_ok": size_ok,
+            "sha256_ok": hash_ok,
+            "expected_bytes": expected_bytes,
+            "actual_bytes": actual_bytes,
+            "expected_sha256": expected_sha256,
+            "actual_sha256": actual_sha256,
+        })
+        overall_ok = overall_ok and row_ok
+
+    return {
+        "ok": overall_ok,
+        "firmware_build_id": manifest["firmware_build_id"],
+        "artifact_count": len(results),
+        "artifacts": results,
+        "manifest": manifest,
+    }
+
+
 def build_manifest(
     artifact_dir,
     identity_path,

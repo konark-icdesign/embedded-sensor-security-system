@@ -56,6 +56,25 @@ def format_bench_report(summary):
         "  reported_firmware_ids: {}".format(
             ", ".join(metadata.get("reported_firmware_ids", [])) or "none"
         ),
+        "  intended_firmware_build_id: {}".format(
+            metadata.get("intended_firmware_build_id") or "none"
+        ),
+        "  firmware_build_match_state: {}".format(
+            metadata.get("firmware_build_match_state", "not-requested")
+        ),
+        "  firmware_artifacts_verified_before_capture: {}".format(
+            metadata.get("firmware_artifacts_verified_before_capture")
+        ),
+        "  firmware_build_manifest_sha256: {}".format(
+            metadata.get("firmware_build_manifest_sha256") or "none"
+        ),
+        "  firmware_flash_artifacts: {}".format(
+            ", ".join(
+                item.get("capture_file", "")
+                for item in metadata.get("firmware_flash_artifacts", [])
+                if item.get("capture_file")
+            ) or "none"
+        ),
         "  reference_distance_m: {}".format(
             _number(metadata.get("reference_distance_m"))
         ),

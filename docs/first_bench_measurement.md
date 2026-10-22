@@ -115,7 +115,7 @@ is outside the current prototype.
 Connect the flashed UNO R4 to the HP and leave it untouched for 60 seconds.
 
 ```text
-python scripts/run_board_bench.py --port auto --seconds 60 --label usb-idle
+python scripts/run_board_bench.py --port auto --seconds 60 --label usb-idle --firmware-build-manifest results/firmware-build/local_manifest.json --firmware-artifact-dir results/firmware-build/local
 ```
 
 If automatic selection is ambiguous, use the actual COM/device name. Connection
@@ -127,6 +127,13 @@ a port that opened but produced no valid telemetry.
 Close Arduino Serial Monitor before starting the capture because only one
 process should own the serial port.
 
+When the firmware manifest/artifact arguments are supplied, the command first
+re-hashes every compiled artifact against the build manifest. A mismatch stops
+the run before a capture directory is created. The build manifest and every
+flashable artifact named by it are then copied into the capture and included in
+`capture_integrity.json`. This keeps the intended flash image with the physical
+measurement even if the original build directory is later cleaned.
+
 Do not deliberately unplug USB during this first run. The purpose is to measure
 the ordinary cadence and transport latency distribution. Check `metadata.json`
 afterward: `resolved_ports_seen` should identify the actual COM/device path used
@@ -135,8 +142,12 @@ keeps the preflight port inventory so the device list immediately before the run
 is preserved. Confirm `reported_firmware_ids` contains one stamped build ID and
 `firmware_identity_state` is `reported`; `missing`, `unstamped`, or
 `changed-during-capture` are preserved explicitly rather than hidden. Also
-confirm `git_revision` identifies the host code used for the run and
-`git_dirty` is false for a reproducible baseline capture.
+confirm `firmware_build_match_state` is `match`, meaning the one build ID
+reported by the running UNO equals the build ID in the verified compiled-artifact
+manifest. Missing, multiple or different board IDs remain in the evidence and
+make the command exit with status 3 after the capture is finalized; the data is
+not deleted. Also confirm `git_revision` identifies the host code used for the
+run and `git_dirty` is false for a reproducible baseline capture.
 `capture_integrity.json` is written last;
 if an evidence file is later edited, its stored SHA-256 will no longer match.
 
