@@ -117,6 +117,7 @@ class BenchFirmwarePrepareTests(unittest.TestCase):
             manifest = json.loads(
                 Path(result["manifest_path"]).read_text(encoding="utf-8")
             )
+            expected_cli_hash = sha256_file(cli)
 
         self.assertTrue(result["ok"])
         self.assertFalse(result["uploaded"])
@@ -125,7 +126,7 @@ class BenchFirmwarePrepareTests(unittest.TestCase):
         self.assertEqual(result["core_version"], "1.6.0")
         self.assertEqual(
             manifest["arduino_cli_executable_sha256"],
-            sha256_file(cli),
+            expected_cli_hash,
         )
         self.assertEqual(manifest["arduino_cli_asset"], "linux64")
         self.assertEqual(manifest["artifact_count"], 2)
