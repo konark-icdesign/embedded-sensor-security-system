@@ -1,7 +1,6 @@
 """Prepare one provenance-bound UNO R4 firmware build for bench capture."""
 
 import re
-import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
