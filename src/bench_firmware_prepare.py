@@ -54,7 +54,7 @@ def default_cli_path(repo_root, asset_id=None):
 
 
 def default_build_dir(repo_root):
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     return (
         Path(repo_root)
         / "results"
