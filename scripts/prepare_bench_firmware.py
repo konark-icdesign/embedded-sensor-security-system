@@ -71,9 +71,9 @@ def main():
 
     port = result["upload_port"] if result["uploaded"] else "auto"
     print(
-        "NEXT python scripts/run_board_bench.py --port {} --seconds 60 "
-        "--label usb-idle --firmware-build-manifest "{}" "
-        "--firmware-artifact-dir "{}"".format(
+        'NEXT python scripts/run_board_bench.py --port {} --seconds 60 '
+        '--label usb-idle --firmware-build-manifest "{}" '
+        '--firmware-artifact-dir "{}"'.format(
             port,
             result["manifest_path"],
             result["build_dir"],
