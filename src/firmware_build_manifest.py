@@ -146,6 +146,7 @@ def build_manifest(
     core_version,
     fqbn,
     cli_asset_id=None,
+    cli_executable_sha256=None,
 ):
     identity = _load_identity(identity_path)
     artifacts = collect_artifacts(artifact_dir)
@@ -165,6 +166,7 @@ def build_manifest(
         "arduino_cli_version": str(cli_version),
         "arduino_cli_asset": selected_cli_asset.get("asset_id"),
         "arduino_cli_archive_sha256": selected_cli_asset.get("sha256"),
+        "arduino_cli_executable_sha256": cli_executable_sha256,
         "arduino_core_version": str(core_version),
         "fqbn": str(fqbn),
         "artifact_count": len(artifacts),
