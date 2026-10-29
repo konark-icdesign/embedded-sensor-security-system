@@ -65,70 +65,64 @@ not a hard failure, because the capture metadata already records
 failures. The preflight does not open the serial port or claim that hardware is
 working; the bounded capture remains the actual transport test.
 
-## Stamp firmware identity before flashing
+## Prepare and flash the provenance-bound firmware
 
-Immediately before compiling/uploading the UNO R4 firmware, generate the
-source-derived build identity:
-
-```text
-python scripts/stamp_firmware_identity.py
-```
-
-This writes ignored files inside `firmware/night_security/`:
-`build_identity.h` for the firmware compile and
-`firmware_build_identity.json` for local inspection. The ID combines the
-current Git revision with a SHA-256-derived token from the firmware source
-files. Dirty firmware edits therefore change the source token even when the Git
-revision itself has not changed.
-
-The live host sends `ID\n` on every serial connection and retries once after
-the first valid sensor packet if no response arrived. Stamped firmware replies
-with `I,1,<build-id>`; older/unmodified firmware can still stream sensor data,
-but the capture will record the firmware identity as missing. A firmware build
-compiled without the generated header reports `UNSTAMPED`.
-
-The build workflow now also pins Arduino CLI 1.5.1 and the UNO R4 core 1.6.0,
-compiles into a dedicated artifact directory and writes SHA-256 hashes for the
-flashable binary plus ELF output when present.
-
-On the Windows HP t640, bootstrap the pinned tool first:
+Install the pinned Arduino toolchain once:
 
 ```text
 python scripts/bootstrap_arduino.py
 ```
 
-The bootstrap selects the official Windows x64 ZIP automatically, verifies its
-published SHA-256 before extraction, and installs UNO R4 core 1.6.0. From the
-repository directory, use the extracted executable directly:
+The bootstrap selects the verified Windows x64 ZIP or Linux x64 tarball for the
+current host and installs UNO R4 core 1.6.0.
+
+For the physical bench, use the same preparation command exercised by CI:
 
 ```text
-python scripts/stamp_firmware_identity.py
-..\arduino-tools\arduino-cli.exe compile --fqbn arduino:renesas_uno:unor4wifi --clean --output-dir results/firmware-build/local firmware/night_security
-python scripts/write_firmware_build_manifest.py --artifact-dir results/firmware-build/local --output results/firmware-build/local_manifest.json --cli-version 1.5.1 --cli-asset windows64 --core-version 1.6.0 --fqbn arduino:renesas_uno:unor4wifi
-..\arduino-tools\arduino-cli.exe upload -p COM7 --fqbn arduino:renesas_uno:unor4wifi --input-dir results/firmware-build/local
+python scripts/prepare_bench_firmware.py --upload-port auto
 ```
 
-For Linux, the same bootstrap selects the verified Linux x64 tarball; use
-`../arduino-tools/arduino-cli` and `--cli-asset linux64` when writing the
-manifest.
+Supplying `--upload-port` is the explicit flash action. Use an actual device
+such as `COM7` instead of `auto` when port discovery is ambiguous. Omitting
+`--upload-port` performs the complete provenance-bound build without flashing.
 
-Replace `COM7` with the actual UNO R4 port. Flash from that already-built
-directory rather than triggering another compile. Arduino CLI supports uploading
-prebuilt binaries from an input directory, which keeps the intended flashed
-artifact hashable before upload.
+The preparation command verifies the actual Arduino CLI executable reports
+version 1.5.1 and the installed `arduino:renesas_uno` core reports 1.6.0
+before compiling. It then:
+
+- generates the source-derived firmware build ID;
+- creates a fresh build directory so stale binaries cannot be mixed in;
+- compiles the UNO R4 target with `--clean`;
+- records the SHA-256 of the actual Arduino CLI executable;
+- hashes the flashable firmware and ELF outputs into the build manifest;
+- immediately re-verifies every recorded compiled artifact; and
+- when upload is requested, flashes from that exact verified build directory.
+
+The command prints the build directory, manifest path and a `NEXT` command for
+the 60-second steady USB capture. The source-derived build ID still combines the
+Git revision with a SHA-256-derived firmware-source token, so dirty firmware
+edits change the ID even when the Git revision itself has not changed.
+
+The live host sends `ID\n` on every serial connection and retries once after
+the first valid sensor packet if no response arrived. Stamped firmware replies
+with `I,1,<build-id>`; older/unmodified firmware can still stream sensor data,
+but the capture records firmware identity as missing. A firmware build compiled
+without the generated header reports `UNSTAMPED`.
 
 The resulting manifest still is not cryptographic attestation of MCU flash. It
-records the exact compiled files and toolchain versions used before upload, while
-the runtime `ID` query proves that the running firmware reports the matching
-source-derived build ID. Readback/secure attestation of the MCU's flash contents
-is outside the current prototype.
+records the exact compiled artifacts, the verified toolchain versions and the
+actual compiler executable hash used before upload. The runtime `ID` query then
+checks that the running firmware reports the matching source-derived build ID.
+Readback or secure attestation of MCU flash contents is outside this prototype.
 
 ## Trial 1 — steady USB
 
 Connect the flashed UNO R4 to the HP and leave it untouched for 60 seconds.
 
 ```text
-python scripts/run_board_bench.py --port auto --seconds 60 --label usb-idle --firmware-build-manifest results/firmware-build/local_manifest.json --firmware-artifact-dir results/firmware-build/local
+Use the exact `NEXT` command printed by `prepare_bench_firmware.py`. It carries
+the generated manifest and build-directory paths into the capture without manual
+copying.
 ```
 
 If automatic selection is ambiguous, use the actual COM/device name. Connection
