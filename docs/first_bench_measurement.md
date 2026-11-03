@@ -98,8 +98,15 @@ before compiling. It then:
 - immediately re-verifies every recorded compiled artifact; and
 - when upload is requested, flashes from that exact verified build directory.
 
-The command prints the build directory, manifest path and a `NEXT` command for
-the 60-second steady USB capture. The source-derived build ID still combines the
+The command prints the build directory, manifest path and provenance-bound
+commands for the steady, reconnect and example static-range trials. Every command
+uses `--prepared-build-dir`, which makes the capture resolve the manifest and
+compiled artifacts from one directory instead of requiring two paths to be copied
+by hand. The printed capture commands use `--port auto` even after upload so the
+runtime port is rediscovered if Windows re-enumerates the UNO during reset. Use an
+explicit COM/device path only when automatic selection is ambiguous.
+
+The source-derived build ID still combines the
 Git revision with a SHA-256-derived firmware-source token, so dirty firmware
 edits change the ID even when the Git revision itself has not changed.
 
@@ -119,11 +126,10 @@ Readback or secure attestation of MCU flash contents is outside this prototype.
 
 Connect the flashed UNO R4 to the HP and leave it untouched for 60 seconds.
 
-```text
-Use the exact `NEXT` command printed by `prepare_bench_firmware.py`. It carries
-the generated manifest and build-directory paths into the capture without manual
-copying.
-```
+Use the exact `NEXT_STEADY` command printed by
+`prepare_bench_firmware.py`. It carries the prepared build directory into the
+capture, which automatically resolves and verifies the manifest plus compiled
+artifacts.
 
 If automatic selection is ambiguous, use the actual COM/device name. Connection
 failures are retained in the runtime health record, including the last error and
@@ -170,11 +176,9 @@ It also rejects manifest filenames that try to escape the capture directory.
 
 ## Trial 2 — reconnect
 
-Run a separate capture for 90 seconds:
-
-```text
-python scripts/run_board_bench.py --port auto --seconds 90 --label usb-reconnect
-```
+Run the exact `NEXT_RECONNECT` command printed by
+`prepare_bench_firmware.py`. It is the 90-second reconnect capture bound to the
+same prepared firmware build as Trial 1.
 
 After approximately 30 seconds, unplug and reconnect the UNO USB once. Do not
 edit the resulting files. The run should show whether the OS re-enumerates the
@@ -185,13 +189,12 @@ sequence/serial-drop accounting agrees.
 
 After the serial-only path is understood, attach one sensor already intended for
 the build. For ultrasonic testing, use separate static-distance captures rather
-than moving the target continuously, for example:
+than moving the target continuously. Start from the `NEXT_RANGE_EXAMPLE` command
+printed by `prepare_bench_firmware.py`; it already carries the same
+`--prepared-build-dir` provenance binding as the earlier trials.
 
-```text
-python scripts/run_board_bench.py --port auto --seconds 30 --label range-static-1m --reference-distance-m 1.0 --setup-note "flat target, tape measured"
-```
-
-Use `--reference-distance-m` for the actual tape-measured distance so the
+Change the example label, `--reference-distance-m` and setup note to match the
+actual physical setup. Use `--reference-distance-m` for the actual tape-measured distance so the
 ground-truth value is stored inside the capture metadata instead of in a
 separate note. `--setup-note` can hold a short physical setup description.
 Repeat at other useful distances and include an invalid/no-echo condition
