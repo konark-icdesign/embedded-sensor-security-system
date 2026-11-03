@@ -20,6 +20,7 @@ class BenchReportTests(unittest.TestCase):
                 ],
                 "intended_firmware_build_id": "gabc123-sdef456",
                 "firmware_build_match_state": "match",
+                "firmware_build_binding_mode": "prepared-build-dir",
                 "firmware_artifacts_verified_before_capture": True,
                 "firmware_build_manifest_sha256": "f" * 64,
                 "firmware_flash_artifacts": [{
@@ -116,6 +117,10 @@ class BenchReportTests(unittest.TestCase):
             report,
         )
         self.assertIn("firmware_build_match_state: match", report)
+        self.assertIn(
+            "firmware_build_binding_mode: prepared-build-dir",
+            report,
+        )
         self.assertIn(
             "firmware_artifacts_verified_before_capture: True",
             report,
