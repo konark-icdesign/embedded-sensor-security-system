@@ -62,6 +62,9 @@ def format_bench_report(summary):
         "  firmware_build_match_state: {}".format(
             metadata.get("firmware_build_match_state", "not-requested")
         ),
+        "  firmware_build_binding_mode: {}".format(
+            metadata.get("firmware_build_binding_mode") or "none"
+        ),
         "  firmware_artifacts_verified_before_capture: {}".format(
             metadata.get("firmware_artifacts_verified_before_capture")
         ),
