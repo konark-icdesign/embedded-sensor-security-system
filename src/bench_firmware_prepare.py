@@ -177,10 +177,11 @@ def prepare_bench_firmware(
     )
 
     cli_executable_sha256 = sha256_file(cli_path)
-    manifest_path = (
+    canonical_manifest_path = build_dir / "firmware_build_manifest.json"
+    requested_manifest_path = (
         Path(manifest_path).resolve()
         if manifest_path is not None
-        else build_dir / "firmware_build_manifest.json"
+        else canonical_manifest_path
     )
     manifest = build_manifest(
         build_dir,
@@ -191,9 +192,11 @@ def prepare_bench_firmware(
         cli_asset_id=asset["asset_id"],
         cli_executable_sha256=cli_executable_sha256,
     )
-    write_manifest(manifest_path, manifest)
+    write_manifest(canonical_manifest_path, manifest)
+    if requested_manifest_path != canonical_manifest_path:
+        write_manifest(requested_manifest_path, manifest)
 
-    verified = verify_manifest_artifacts(manifest_path, build_dir)
+    verified = verify_manifest_artifacts(canonical_manifest_path, build_dir)
     if not verified["ok"]:
         raise RuntimeError("compiled firmware artifact verification failed")
 
@@ -224,7 +227,8 @@ def prepare_bench_firmware(
         "ok": True,
         "build_id": identity["build_id"],
         "build_dir": str(build_dir),
-        "manifest_path": str(manifest_path),
+        "manifest_path": str(requested_manifest_path),
+        "prepared_manifest_path": str(canonical_manifest_path),
         "cli_asset": asset["asset_id"],
         "cli_version": actual_cli_version,
         "cli_executable": str(cli_path),

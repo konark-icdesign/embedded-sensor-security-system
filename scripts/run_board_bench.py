@@ -103,6 +103,36 @@ def _firmware_build_match_state(expected_build_id, reported_ids):
     return "mismatch"
 
 
+def _resolve_firmware_build_paths(
+    prepared_build_dir=None,
+    firmware_build_manifest=None,
+    firmware_artifact_dir=None,
+):
+    if prepared_build_dir and (
+        firmware_build_manifest or firmware_artifact_dir
+    ):
+        raise ValueError(
+            "--prepared-build-dir cannot be combined with "
+            "--firmware-build-manifest/--firmware-artifact-dir"
+        )
+    if bool(firmware_build_manifest) != bool(firmware_artifact_dir):
+        raise ValueError(
+            "--firmware-build-manifest and --firmware-artifact-dir "
+            "must be supplied together"
+        )
+    if prepared_build_dir:
+        artifact_dir = Path(prepared_build_dir).resolve()
+        manifest_path = artifact_dir / "firmware_build_manifest.json"
+        return str(manifest_path), str(artifact_dir), "prepared-build-dir"
+    if firmware_build_manifest:
+        return (
+            str(Path(firmware_build_manifest)),
+            str(Path(firmware_artifact_dir)),
+            "explicit-pair",
+        )
+    return None, None, None
+
+
 def _zero_sample_diagnostic(health):
     connection_error = health.get("last_connection_error")
     if connection_error:
@@ -132,6 +162,11 @@ def main():
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--reference-distance-m", type=float)
     parser.add_argument("--setup-note")
+    parser.add_argument(
+        "--prepared-build-dir",
+        help="prepared firmware build directory containing "
+        "firmware_build_manifest.json and its compiled artifacts",
+    )
     parser.add_argument("--firmware-build-manifest")
     parser.add_argument("--firmware-artifact-dir")
     args = parser.parse_args()
@@ -147,19 +182,24 @@ def main():
         parser.error("--reference-distance-m must be positive")
     if args.setup_note is not None and len(args.setup_note) > 500:
         parser.error("--setup-note must be 500 characters or fewer")
-    if bool(args.firmware_build_manifest) != bool(args.firmware_artifact_dir):
-        parser.error(
-            "--firmware-build-manifest and --firmware-artifact-dir "
-            "must be supplied together"
+    try:
+        firmware_build_manifest, firmware_artifact_dir, build_binding_mode = (
+            _resolve_firmware_build_paths(
+                prepared_build_dir=args.prepared_build_dir,
+                firmware_build_manifest=args.firmware_build_manifest,
+                firmware_artifact_dir=args.firmware_artifact_dir,
+            )
         )
+    except ValueError as exc:
+        parser.error(str(exc))
 
     build_verification = None
     intended_build_id = None
-    if args.firmware_build_manifest:
+    if firmware_build_manifest:
         try:
             build_verification = verify_manifest_artifacts(
-                args.firmware_build_manifest,
-                args.firmware_artifact_dir,
+                firmware_build_manifest,
+                firmware_artifact_dir,
             )
         except ValueError as exc:
             parser.error(str(exc))
@@ -200,16 +240,16 @@ def main():
     integrity_path = output / "capture_integrity.json"
     firmware_manifest_copy = None
     firmware_flash_copies = []
-    if args.firmware_build_manifest:
+    if firmware_build_manifest:
         firmware_manifest_copy = output / "firmware_build_manifest.json"
-        shutil.copy2(args.firmware_build_manifest, firmware_manifest_copy)
+        shutil.copy2(firmware_build_manifest, firmware_manifest_copy)
         for index, artifact in enumerate(
             build_verification["manifest"]["artifacts"]
         ):
             if not artifact.get("flash_candidate", False):
                 continue
             relative = Path(artifact["path"])
-            source = Path(args.firmware_artifact_dir) / relative
+            source = Path(firmware_artifact_dir) / relative
             destination = output / (
                 "firmware_flash_{}_{}".format(index, relative.name)
             )
@@ -279,6 +319,7 @@ def main():
         "firmware_identity_state": _firmware_identity_state(health),
         "intended_firmware_build_id": intended_build_id,
         "firmware_build_match_state": firmware_build_match_state,
+        "firmware_build_binding_mode": build_binding_mode,
         "firmware_artifacts_verified_before_capture": (
             None if build_verification is None else True
         ),

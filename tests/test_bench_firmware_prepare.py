@@ -136,6 +136,38 @@ class BenchFirmwarePrepareTests(unittest.TestCase):
             for row in manifest["artifacts"]
         ))
 
+    def test_custom_manifest_export_keeps_canonical_manifest_in_build_dir(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo, _ = make_repo(root)
+            build_dir = repo / "results" / "firmware-build" / "test"
+            export_path = repo / "exports" / "custom_manifest.json"
+
+            result = prepare_bench_firmware(
+                repo_root=repo,
+                build_dir=build_dir,
+                manifest_path=export_path,
+                cli_asset_id="linux64",
+                revision="abc123def456789",
+                runner=FakeArduinoRunner(),
+            )
+
+            canonical = build_dir / "firmware_build_manifest.json"
+            self.assertTrue(canonical.is_file())
+            self.assertTrue(export_path.is_file())
+            self.assertEqual(
+                json.loads(canonical.read_text(encoding="utf-8")),
+                json.loads(export_path.read_text(encoding="utf-8")),
+            )
+            self.assertEqual(
+                Path(result["prepared_manifest_path"]),
+                canonical.resolve(),
+            )
+            self.assertEqual(
+                Path(result["manifest_path"]),
+                export_path.resolve(),
+            )
+
     def test_upload_auto_uses_exact_prebuilt_directory(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

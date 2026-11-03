@@ -17,6 +17,26 @@ from src.arduino_toolchain import (
 from src.bench_firmware_prepare import prepare_bench_firmware
 
 
+def _bench_commands(build_dir):
+    build_arg = '"{}"'.format(Path(build_dir))
+    common = '--port auto --prepared-build-dir {}'.format(build_arg)
+    return {
+        "steady": (
+            "python scripts/run_board_bench.py {} --seconds 60 "
+            "--label usb-idle"
+        ).format(common),
+        "reconnect": (
+            "python scripts/run_board_bench.py {} --seconds 90 "
+            "--label usb-reconnect"
+        ).format(common),
+        "range_example": (
+            "python scripts/run_board_bench.py {} --seconds 30 "
+            "--label range-static-1m --reference-distance-m 1.0 "
+            '--setup-note "flat target, tape measured"'
+        ).format(common),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--build-dir")
@@ -55,6 +75,9 @@ def main():
     except (RuntimeError, ValueError) as exc:
         parser.error(str(exc))
 
+    result = dict(result)
+    result["bench_commands"] = _bench_commands(result["build_dir"])
+
     if args.json:
         print(json.dumps(result, indent=2))
         return
@@ -69,16 +92,10 @@ def main():
     if result["uploaded"]:
         print("UPLOAD_PORT {}".format(result["upload_port"]))
 
-    port = result["upload_port"] if result["uploaded"] else "auto"
-    print(
-        'NEXT python scripts/run_board_bench.py --port {} --seconds 60 '
-        '--label usb-idle --firmware-build-manifest "{}" '
-        '--firmware-artifact-dir "{}"'.format(
-            port,
-            result["manifest_path"],
-            result["build_dir"],
-        )
-    )
+    commands = result["bench_commands"]
+    print("NEXT_STEADY {}".format(commands["steady"]))
+    print("NEXT_RECONNECT {}".format(commands["reconnect"]))
+    print("NEXT_RANGE_EXAMPLE {}".format(commands["range_example"]))
 
 
 if __name__ == "__main__":
