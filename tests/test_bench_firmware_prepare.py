@@ -129,12 +129,52 @@ class BenchFirmwarePrepareTests(unittest.TestCase):
             expected_cli_hash,
         )
         self.assertEqual(manifest["arduino_cli_asset"], "linux64")
+        self.assertIn("-b", result["build_id"])
+        self.assertEqual(
+            result["build_context_sha256"],
+            manifest["firmware_build_context_sha256"],
+        )
+        self.assertEqual(
+            manifest["firmware_build_context"][
+                "arduino_cli_executable_sha256"
+            ],
+            expected_cli_hash,
+        )
         self.assertEqual(manifest["artifact_count"], 2)
         self.assertTrue(any(
             row["path"].endswith(".bin")
             and row["flash_candidate"]
             for row in manifest["artifacts"]
         ))
+
+    def test_same_source_with_different_cli_binary_gets_different_build_id(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo, cli = make_repo(root)
+            runner = FakeArduinoRunner()
+
+            first = prepare_bench_firmware(
+                repo_root=repo,
+                build_dir=repo / "results" / "firmware-build" / "first",
+                cli_asset_id="linux64",
+                revision="abc123def456789",
+                runner=runner,
+            )
+
+            cli.write_bytes(b"different-fake-arduino-cli")
+            second = prepare_bench_firmware(
+                repo_root=repo,
+                build_dir=repo / "results" / "firmware-build" / "second",
+                cli_asset_id="linux64",
+                revision="abc123def456789",
+                runner=runner,
+            )
+
+        self.assertNotEqual(first["build_id"], second["build_id"])
+        self.assertNotEqual(
+            first["build_context_sha256"],
+            second["build_context_sha256"],
+        )
 
     def test_custom_manifest_export_keeps_canonical_manifest_in_build_dir(self):
         with tempfile.TemporaryDirectory() as td:
