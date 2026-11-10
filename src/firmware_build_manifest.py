@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 
 from src.arduino_toolchain import cli_asset
-from src.firmware_identity import build_recipe_context
+from src.firmware_identity import (
+    build_context_sha256,
+    build_recipe_context,
+)
 
 FLASH_EXTENSIONS = {".bin", ".hex", ".uf2"}
 BUILD_EXTENSIONS = FLASH_EXTENSIONS | {".elf"}
@@ -167,10 +170,21 @@ def build_manifest(
         cli_executable_sha256=cli_executable_sha256,
     )
     identity_context = identity.get("build_context")
-    if identity_context is not None and identity_context != expected_context:
-        raise ValueError(
-            "firmware identity build recipe does not match manifest toolchain"
-        )
+    if identity_context is not None:
+        if identity_context != expected_context:
+            raise ValueError(
+                "firmware identity build recipe does not match manifest toolchain"
+            )
+        expected_context_hash = build_context_sha256(expected_context)
+        if identity.get("build_context_sha256") != expected_context_hash:
+            raise ValueError(
+                "firmware identity build recipe hash does not match context"
+            )
+        recipe_token = "-b{}".format(expected_context_hash[:12])
+        if recipe_token not in str(identity["build_id"]):
+            raise ValueError(
+                "firmware build ID does not contain build recipe fingerprint"
+            )
 
     return {
         "schema": 1,
