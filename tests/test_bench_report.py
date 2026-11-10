@@ -16,9 +16,10 @@ class BenchReportTests(unittest.TestCase):
                 "git_dirty": False,
                 "firmware_identity_state": "reported",
                 "reported_firmware_ids": [
-                    "gabc123-sdef456"
+                    "gabc123-sdef456-babc789"
                 ],
-                "intended_firmware_build_id": "gabc123-sdef456",
+                "intended_firmware_build_id": "gabc123-sdef456-babc789",
+                "intended_firmware_build_context_sha256": "c" * 64,
                 "firmware_build_match_state": "match",
                 "firmware_build_binding_mode": "prepared-build-dir",
                 "firmware_artifacts_verified_before_capture": True,
@@ -111,9 +112,16 @@ class BenchReportTests(unittest.TestCase):
         self.assertIn("label: usb-idle", report)
         self.assertIn("resolved_ports_seen: COM7", report)
         self.assertIn("firmware_identity_state: reported", report)
-        self.assertIn("reported_firmware_ids: gabc123-sdef456", report)
         self.assertIn(
-            "intended_firmware_build_id: gabc123-sdef456",
+            "reported_firmware_ids: gabc123-sdef456-babc789",
+            report,
+        )
+        self.assertIn(
+            "intended_firmware_build_id: gabc123-sdef456-babc789",
+            report,
+        )
+        self.assertIn(
+            "intended_firmware_build_context_sha256: " + "c" * 64,
             report,
         )
         self.assertIn("firmware_build_match_state: match", report)
