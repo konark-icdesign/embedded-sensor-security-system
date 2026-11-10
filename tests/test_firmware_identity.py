@@ -3,7 +3,9 @@ import tempfile
 import unittest
 
 from src.firmware_identity import (
+    build_context_sha256,
     build_identity,
+    build_recipe_context,
     source_sha256,
     write_identity_files,
 )
@@ -56,14 +58,67 @@ class FirmwareIdentityTests(unittest.TestCase):
         self.assertTrue(identity["build_id"].endswith("-dirty"))
         self.assertEqual(identity["git_revision"], "1234567890abcdef")
 
+    def test_build_recipe_changes_runtime_build_id(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "main.ino").write_text(
+                "void setup() {}\n",
+                encoding="utf-8",
+            )
+            base = build_recipe_context(
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+                cli_asset_id="linux64",
+                cli_executable_sha256="a" * 64,
+            )
+            changed = dict(base)
+            changed["arduino_core_version"] = "1.6.1"
+
+            first = build_identity(
+                root,
+                revision="1234567890abcdef",
+                dirty=False,
+                build_context=base,
+            )
+            second = build_identity(
+                root,
+                revision="1234567890abcdef",
+                dirty=False,
+                build_context=changed,
+            )
+
+        self.assertNotEqual(first["build_id"], second["build_id"])
+        self.assertIn("-b", first["build_id"])
+        self.assertEqual(
+            first["source_sha256"],
+            second["source_sha256"],
+        )
+
+    def test_build_context_hash_is_key_order_independent(self):
+        left = {"b": "two", "a": "one"}
+        right = {"a": "one", "b": "two"}
+        self.assertEqual(
+            build_context_sha256(left),
+            build_context_sha256(right),
+        )
+
     def test_writer_creates_header_and_manifest(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "main.ino").write_text("void setup() {}\n", encoding="utf-8")
+            context = build_recipe_context(
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+                cli_asset_id="linux64",
+                cli_executable_sha256="a" * 64,
+            )
             identity = write_identity_files(
                 root,
                 revision="abcdef1234567890",
                 dirty=False,
+                build_context=context,
             )
             header = (root / "build_identity.h").read_text(encoding="utf-8")
             manifest = (
@@ -72,6 +127,8 @@ class FirmwareIdentityTests(unittest.TestCase):
 
         self.assertIn(identity["build_id"], header)
         self.assertIn(identity["source_sha256"], manifest)
+        self.assertIn(identity["build_context_sha256"], manifest)
+        self.assertIn("-b", identity["build_id"])
 
 
 if __name__ == "__main__":
