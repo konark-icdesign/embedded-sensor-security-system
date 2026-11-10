@@ -168,15 +168,18 @@ class FirmwareBuildManifestTests(unittest.TestCase):
                 cli_asset_id="linux64",
                 cli_executable_sha256="b" * 64,
             )
+            context_hash = build_context_sha256(context)
             identity = root / "identity.json"
             identity.write_text(
                 json.dumps({
-                    "build_id": "gabc-sdef-b123",
+                    "build_id": "gabc-sdef-b{}".format(
+                        context_hash[:12]
+                    ),
                     "source_sha256": "a" * 64,
                     "git_revision": "abc",
                     "git_dirty": False,
                     "build_context": context,
-                    "build_context_sha256": build_context_sha256(context),
+                    "build_context_sha256": context_hash,
                 }) + "\n",
                 encoding="utf-8",
             )
