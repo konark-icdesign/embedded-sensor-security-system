@@ -17,12 +17,12 @@ def packet(seq, ms, drops=0, *, p=0, m=0, u=0, metres=3.0, valid=1,
 class BoardSerialTests(unittest.TestCase):
     def test_parse_firmware_identity_packet(self):
         identity = parse_identity_line(
-            b"I,1,g8a62854b1ce2-s123456789abc\n"
+            b"I,1,g8a62854b1ce2-s123456789abc-babcdef12345\n"
         )
         self.assertEqual(identity.protocol_version, 1)
         self.assertEqual(
             identity.build_id,
-            "g8a62854b1ce2-s123456789abc",
+            "g8a62854b1ce2-s123456789abc-babcdef12345",
         )
 
     def test_identity_rejects_unsupported_or_unsafe_values(self):

@@ -195,6 +195,7 @@ def main():
 
     build_verification = None
     intended_build_id = None
+    intended_build_context_sha256 = None
     if firmware_build_manifest:
         try:
             build_verification = verify_manifest_artifacts(
@@ -208,6 +209,9 @@ def main():
                 "compiled firmware artifacts do not match the build manifest"
             )
         intended_build_id = build_verification["firmware_build_id"]
+        intended_build_context_sha256 = build_verification["manifest"].get(
+            "firmware_build_context_sha256"
+        )
 
     preflight = run_preflight(
         port=args.port,
@@ -318,6 +322,9 @@ def main():
         "reported_firmware_ids": reported_firmware_ids,
         "firmware_identity_state": _firmware_identity_state(health),
         "intended_firmware_build_id": intended_build_id,
+        "intended_firmware_build_context_sha256": (
+            intended_build_context_sha256
+        ),
         "firmware_build_match_state": firmware_build_match_state,
         "firmware_build_binding_mode": build_binding_mode,
         "firmware_artifacts_verified_before_capture": (

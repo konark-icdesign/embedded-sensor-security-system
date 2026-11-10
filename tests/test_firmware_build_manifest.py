@@ -17,6 +17,10 @@ from src.firmware_build_manifest import (
     collect_artifacts,
     verify_manifest_artifacts,
 )
+from src.firmware_identity import (
+    build_context_sha256,
+    build_recipe_context,
+)
 
 
 class ArduinoToolchainTests(unittest.TestCase):
@@ -150,6 +154,91 @@ class FirmwareBuildManifestTests(unittest.TestCase):
             manifest["arduino_cli_archive_sha256"],
             ARDUINO_CLI_WINDOWS64_SHA256,
         )
+
+    def test_manifest_preserves_matching_firmware_build_recipe(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "night_security.ino.bin").write_bytes(b"binary")
+            context = build_recipe_context(
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+                cli_asset_id="linux64",
+                cli_executable_sha256="b" * 64,
+            )
+            context_hash = build_context_sha256(context)
+            identity = root / "identity.json"
+            identity.write_text(
+                json.dumps({
+                    "build_id": "gabc-sdef-b{}".format(
+                        context_hash[:12]
+                    ),
+                    "source_sha256": "a" * 64,
+                    "git_revision": "abc",
+                    "git_dirty": False,
+                    "build_context": context,
+                    "build_context_sha256": context_hash,
+                }) + "\n",
+                encoding="utf-8",
+            )
+
+            manifest = build_manifest(
+                artifacts,
+                identity,
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+                cli_asset_id="linux64",
+                cli_executable_sha256="b" * 64,
+            )
+
+        self.assertEqual(manifest["firmware_build_context"], context)
+        self.assertEqual(
+            manifest["firmware_build_context_sha256"],
+            build_context_sha256(context),
+        )
+
+    def test_manifest_rejects_identity_from_different_build_recipe(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            (artifacts / "night_security.ino.bin").write_bytes(b"binary")
+            context = build_recipe_context(
+                cli_version="1.5.1",
+                core_version="1.6.0",
+                fqbn="arduino:renesas_uno:unor4wifi",
+                cli_asset_id="linux64",
+                cli_executable_sha256="b" * 64,
+            )
+            identity = root / "identity.json"
+            identity.write_text(
+                json.dumps({
+                    "build_id": "gabc-sdef-b123",
+                    "source_sha256": "a" * 64,
+                    "git_revision": "abc",
+                    "git_dirty": False,
+                    "build_context": context,
+                    "build_context_sha256": build_context_sha256(context),
+                }) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "build recipe does not match",
+            ):
+                build_manifest(
+                    artifacts,
+                    identity,
+                    cli_version="1.5.1",
+                    core_version="1.6.1",
+                    fqbn="arduino:renesas_uno:unor4wifi",
+                    cli_asset_id="linux64",
+                    cli_executable_sha256="b" * 64,
+                )
 
     def test_verifier_accepts_untampered_artifacts(self):
         with tempfile.TemporaryDirectory() as td:

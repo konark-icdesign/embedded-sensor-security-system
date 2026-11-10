@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 
 from src.arduino_toolchain import cli_asset
+from src.firmware_identity import (
+    build_context_sha256,
+    build_recipe_context,
+)
 
 FLASH_EXTENSIONS = {".bin", ".hex", ".uf2"}
 BUILD_EXTENSIONS = FLASH_EXTENSIONS | {".elf"}
@@ -157,12 +161,41 @@ def build_manifest(
             "asset_id": cli_asset_id,
             "sha256": None,
         }
+
+    expected_context = build_recipe_context(
+        cli_version=cli_version,
+        core_version=core_version,
+        fqbn=fqbn,
+        cli_asset_id=selected_cli_asset.get("asset_id"),
+        cli_executable_sha256=cli_executable_sha256,
+    )
+    identity_context = identity.get("build_context")
+    if identity_context is not None:
+        if identity_context != expected_context:
+            raise ValueError(
+                "firmware identity build recipe does not match manifest toolchain"
+            )
+        expected_context_hash = build_context_sha256(expected_context)
+        if identity.get("build_context_sha256") != expected_context_hash:
+            raise ValueError(
+                "firmware identity build recipe hash does not match context"
+            )
+        recipe_token = "-b{}".format(expected_context_hash[:12])
+        if recipe_token not in str(identity["build_id"]):
+            raise ValueError(
+                "firmware build ID does not contain build recipe fingerprint"
+            )
+
     return {
         "schema": 1,
         "firmware_build_id": identity["build_id"],
         "firmware_source_sha256": identity.get("source_sha256"),
         "firmware_git_revision": identity.get("git_revision"),
         "firmware_git_dirty": identity.get("git_dirty"),
+        "firmware_build_context_sha256": identity.get(
+            "build_context_sha256"
+        ),
+        "firmware_build_context": identity_context,
         "arduino_cli_version": str(cli_version),
         "arduino_cli_asset": selected_cli_asset.get("asset_id"),
         "arduino_cli_archive_sha256": selected_cli_asset.get("sha256"),

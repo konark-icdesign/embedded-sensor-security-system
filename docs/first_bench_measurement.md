@@ -90,7 +90,7 @@ The preparation command verifies the actual Arduino CLI executable reports
 version 1.5.1 and the installed `arduino:renesas_uno` core reports 1.6.0
 before compiling. It then:
 
-- generates the source-derived firmware build ID;
+- generates a firmware build ID from Git/source state plus a deterministic build-recipe fingerprint;
 - creates a fresh build directory so stale binaries cannot be mixed in;
 - compiles the UNO R4 target with `--clean`;
 - records the SHA-256 of the actual Arduino CLI executable;
@@ -106,9 +106,13 @@ by hand. The printed capture commands use `--port auto` even after upload so the
 runtime port is rediscovered if Windows re-enumerates the UNO during reset. Use an
 explicit COM/device path only when automatic selection is ambiguous.
 
-The source-derived build ID still combines the
-Git revision with a SHA-256-derived firmware-source token, so dirty firmware
-edits change the ID even when the Git revision itself has not changed.
+The firmware build ID combines the Git revision, a SHA-256-derived
+firmware-source token and a build-recipe token. The build-recipe token covers
+the verified Arduino CLI version/asset, the SHA-256 of the actual CLI
+executable, the installed UNO R4 core version and the FQBN. Therefore the same
+source compiled through a different verified recipe receives a different
+runtime ID. Dirty firmware edits still change the source token even when the Git
+revision itself has not changed.
 
 The live host sends `ID\n` on every serial connection and retries once after
 the first valid sensor packet if no response arrived. Stamped firmware replies
@@ -118,9 +122,16 @@ without the generated header reports `UNSTAMPED`.
 
 The resulting manifest still is not cryptographic attestation of MCU flash. It
 records the exact compiled artifacts, the verified toolchain versions and the
-actual compiler executable hash used before upload. The runtime `ID` query then
-checks that the running firmware reports the matching source-derived build ID.
-Readback or secure attestation of MCU flash contents is outside this prototype.
+actual compiler executable hash used before upload. Manifest creation also
+checks that its toolchain fields agree with the build recipe embedded into the
+firmware identity. The runtime `ID` query then checks that the running firmware
+reports the matching source-and-recipe build ID.
+
+This still is not binary readback or secure attestation: two builds produced
+from the same recorded source and build recipe are expected to share the same
+runtime identity even if an external compiler defect or post-link mutation
+changed the final bytes. The manifest separately hashes the actual compiled
+artifacts, while MCU readback/secure attestation remains outside this prototype.
 
 ## Trial 1 — steady USB
 

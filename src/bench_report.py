@@ -59,6 +59,9 @@ def format_bench_report(summary):
         "  intended_firmware_build_id: {}".format(
             metadata.get("intended_firmware_build_id") or "none"
         ),
+        "  intended_firmware_build_context_sha256: {}".format(
+            metadata.get("intended_firmware_build_context_sha256") or "none"
+        ),
         "  firmware_build_match_state: {}".format(
             metadata.get("firmware_build_match_state", "not-requested")
         ),

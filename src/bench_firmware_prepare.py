@@ -18,7 +18,7 @@ from src.firmware_build_manifest import (
     verify_manifest_artifacts,
     write_manifest,
 )
-from src.firmware_identity import write_identity_files
+from src.firmware_identity import build_recipe_context, write_identity_files
 
 
 CORE_ID = "arduino:renesas_uno"
@@ -143,6 +143,15 @@ def prepare_bench_firmware(
             )
         )
 
+    cli_executable_sha256 = sha256_file(cli_path)
+    identity_context = build_recipe_context(
+        cli_version=actual_cli_version,
+        core_version=actual_core_version,
+        fqbn=fqbn,
+        cli_asset_id=asset["asset_id"],
+        cli_executable_sha256=cli_executable_sha256,
+    )
+
     build_dir = (
         Path(build_dir).resolve()
         if build_dir is not None
@@ -158,6 +167,7 @@ def prepare_bench_firmware(
         firmware_dir,
         repo_root=repo_root,
         revision=revision,
+        build_context=identity_context,
     )
 
     _run(
@@ -176,7 +186,6 @@ def prepare_bench_firmware(
         timeout=300,
     )
 
-    cli_executable_sha256 = sha256_file(cli_path)
     canonical_manifest_path = build_dir / "firmware_build_manifest.json"
     requested_manifest_path = (
         Path(manifest_path).resolve()
@@ -226,6 +235,7 @@ def prepare_bench_firmware(
     return {
         "ok": True,
         "build_id": identity["build_id"],
+        "build_context_sha256": identity["build_context_sha256"],
         "build_dir": str(build_dir),
         "manifest_path": str(requested_manifest_path),
         "prepared_manifest_path": str(canonical_manifest_path),
