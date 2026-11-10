@@ -1,4 +1,4 @@
-"""Generate a source-derived identity for the UNO R4 firmware build."""
+"""Generate a source-and-build-recipe identity for UNO R4 firmware."""
 
 import hashlib
 import json
@@ -40,6 +40,43 @@ def source_sha256(firmware_dir):
     return digest.hexdigest(), [path.name for path in files]
 
 
+def build_recipe_context(
+    *,
+    cli_version,
+    core_version,
+    fqbn,
+    cli_asset_id=None,
+    cli_executable_sha256=None,
+):
+    return {
+        "arduino_cli_version": str(cli_version),
+        "arduino_cli_asset": (
+            None if cli_asset_id is None else str(cli_asset_id)
+        ),
+        "arduino_cli_executable_sha256": (
+            None
+            if cli_executable_sha256 is None
+            else str(cli_executable_sha256).lower()
+        ),
+        "arduino_core_version": str(core_version),
+        "fqbn": str(fqbn),
+    }
+
+
+def build_context_sha256(build_context):
+    if build_context is None:
+        return None
+    if not isinstance(build_context, dict):
+        raise ValueError("firmware build context must be a JSON object")
+    encoded = json.dumps(
+        build_context,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def git_state(repo_root):
     try:
         revision = subprocess.run(
@@ -68,6 +105,7 @@ def build_identity(
     repo_root=".",
     revision=None,
     dirty=None,
+    build_context=None,
 ):
     firmware_dir = Path(firmware_dir)
     if revision is None or dirty is None:
@@ -78,8 +116,11 @@ def build_identity(
             dirty = detected_dirty
 
     source_hash, source_files = source_sha256(firmware_dir)
+    context_hash = build_context_sha256(build_context)
     revision_token = "nogit" if not revision else str(revision)[:12]
     build_id = "g{}-s{}".format(revision_token, source_hash[:12])
+    if context_hash is not None:
+        build_id += "-b{}".format(context_hash[:12])
     if dirty is True:
         build_id += "-dirty"
 
@@ -89,6 +130,8 @@ def build_identity(
         "git_dirty": dirty,
         "source_sha256": source_hash,
         "source_files": source_files,
+        "build_context_sha256": context_hash,
+        "build_context": build_context,
     }
 
 
@@ -97,6 +140,7 @@ def write_identity_files(
     repo_root=".",
     revision=None,
     dirty=None,
+    build_context=None,
 ):
     firmware_dir = Path(firmware_dir)
     identity = build_identity(
@@ -104,6 +148,7 @@ def write_identity_files(
         repo_root=repo_root,
         revision=revision,
         dirty=dirty,
+        build_context=build_context,
     )
     header = firmware_dir / "build_identity.h"
     manifest = firmware_dir / "firmware_build_identity.json"
